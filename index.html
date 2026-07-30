@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Nihongo Dōjō</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root{
+    --paper:#F3EFE3;
+    --paper-2:#EBE5D3;
+    --ink:#2A2622;
+    --ink-soft:#5C5546;
+    --grid:#D9CFB4;
+    --red:#AE3B2E;
+    --red-soft:#C7594A;
+    --moss:#4B5A3A;
+    --gold:#9C7F3F;
+    --error:#8C3B2A;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      repeating-linear-gradient(0deg, transparent, transparent 27px, var(--grid) 27px, var(--grid) 28px),
+      repeating-linear-gradient(90deg, transparent, transparent 27px, var(--grid) 27px, var(--grid) 28px),
+      var(--paper);
+    background-attachment: fixed;
+    color:var(--ink);
+    font-family: Georgia, 'Times New Roman', serif;
+    min-height:100vh;
+    padding:24px 16px 60px;
+  }
+  .wrap{max-width:640px;margin:0 auto;}
+
+  header{text-align:center;margin-bottom:22px;}
+  .kanji-mark{
+    font-size:15px;letter-spacing:0.4em;color:var(--ink-soft);
+    text-transform:uppercase;font-family:'Courier New', monospace;
+  }
+  h1{font-size:34px;margin:6px 0 2px;font-weight:400;letter-spacing:0.02em;}
+  h1 .accent{color:var(--red);}
+  .subtitle{font-size:13px;color:var(--ink-soft);font-family:'Courier New', monospace;letter-spacing:0.05em;}
+
+  .stats-row{display:flex;gap:10px;justify-content:center;margin:18px 0 8px;flex-wrap:wrap;}
+  .stat{background:var(--paper-2);border:1px solid var(--grid);padding:8px 14px;font-family:'Courier New', monospace;font-size:12px;color:var(--ink-soft);text-align:center;min-width:90px;}
+  .stat b{display:block;font-size:18px;color:var(--ink);font-family:Georgia,serif;}
+
+  .stamp{
+    position:relative;width:76px;height:76px;border-radius:50%;
+    border:3px solid var(--red);color:var(--red);
+    display:flex;align-items:center;justify-content:center;flex-direction:column;
+    font-family:'Courier New', monospace;font-size:11px;margin:0 auto 10px;
+    transform:rotate(-8deg);opacity:0;transition:opacity .35s ease;
+  }
+  .stamp.show{opacity:1;animation:stampIn .4s ease;}
+  .stamp b{font-size:24px;font-family:Georgia,serif;}
+  @keyframes stampIn{0%{transform:scale(1.8) rotate(-8deg);opacity:0;}60%{transform:scale(0.95) rotate(-8deg);opacity:1;}100%{transform:scale(1) rotate(-8deg);opacity:1;}}
+
+  .card{background:var(--paper-2);border:1px solid var(--grid);border-left:4px solid var(--red);padding:22px 20px;margin-bottom:16px;}
+  .card .eyebrow{font-family:'Courier New', monospace;font-size:11px;letter-spacing:0.1em;color:var(--ink-soft);text-transform:uppercase;margin-bottom:8px;}
+  .task-it{font-size:19px;line-height:1.5;}
+  .hint{margin-top:10px;font-size:13px;color:var(--ink-soft);font-style:italic;}
+
+  .feedback{padding:16px 18px;margin-bottom:16px;font-size:14.5px;line-height:1.55;border-left:4px solid var(--moss);background:#EEEADB;}
+  .feedback.wrong{border-left-color:var(--error);}
+  .feedback .verdict{font-family:'Courier New', monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;display:block;margin-bottom:6px;color:var(--moss);}
+  .feedback.wrong .verdict{color:var(--error);}
+
+  .answer-zone{margin-bottom:14px;}
+  textarea, input[type=password]{
+    width:100%;background:var(--paper);border:1px solid var(--grid);padding:14px;
+    font-family:'Courier New', monospace;font-size:16px;color:var(--ink);resize:none;min-height:60px;
+  }
+  input[type=password]{min-height:auto;}
+  textarea:focus, input:focus{outline:2px solid var(--gold);outline-offset:1px;}
+
+  .actions{display:flex;gap:10px;margin-top:10px;}
+  button{
+    font-family:'Courier New', monospace;font-size:13px;letter-spacing:0.05em;text-transform:uppercase;
+    padding:12px 18px;border:1px solid var(--ink);background:var(--ink);color:var(--paper);cursor:pointer;flex:1;
+  }
+  button:hover:not(:disabled){background:var(--red);border-color:var(--red);}
+  button:disabled{opacity:0.4;cursor:not-allowed;}
+  button.secondary{background:transparent;color:var(--ink-soft);border-color:var(--grid);flex:0 0 auto;}
+  button.secondary:hover{background:var(--paper-2);color:var(--ink);}
+
+  .vocab-panel{margin-top:26px;border-top:1px dashed var(--grid);padding-top:16px;}
+  .vocab-panel h2{font-size:14px;font-family:'Courier New', monospace;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-soft);font-weight:normal;margin:0 0 10px;}
+  .vocab-cols{display:flex;gap:14px;flex-wrap:wrap;}
+  .vocab-col{flex:1;min-width:200px;}
+  .vocab-col .label{font-size:11px;font-family:'Courier New', monospace;color:var(--red);margin-bottom:6px;letter-spacing:0.05em;}
+  .vocab-tags{display:flex;flex-wrap:wrap;gap:6px;}
+  .tag{background:var(--paper);border:1px solid var(--grid);padding:3px 9px;font-size:12px;font-family:'Courier New', monospace;color:var(--ink-soft);}
+  .tag.active{color:var(--moss);border-color:var(--moss);}
+
+  .loading{text-align:center;padding:30px 0;color:var(--ink-soft);font-family:'Courier New', monospace;font-size:13px;}
+  .dot{animation:blink 1.4s infinite;}
+  .dot:nth-child(2){animation-delay:.2s;}
+  .dot:nth-child(3){animation-delay:.4s;}
+  @keyframes blink{0%,80%,100%{opacity:0.2;}40%{opacity:1;}}
+
+  .err-box{background:#F6E3DE;border:1px solid var(--error);color:var(--error);padding:12px 14px;font-size:13px;margin-bottom:14px;font-family:'Courier New', monospace;}
+
+  .setup-card{background:var(--paper-2);border:1px solid var(--grid);border-left:4px solid var(--gold);padding:22px 20px;margin-bottom:16px;}
+  .setup-card p{font-size:14px;line-height:1.6;margin:0 0 12px;}
+  .setup-card a{color:var(--red);}
+  .setup-card label{display:block;font-family:'Courier New', monospace;font-size:11px;letter-spacing:0.05em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:6px;}
+
+  footer{text-align:center;margin-top:30px;font-size:11px;color:var(--ink-soft);font-family:'Courier New', monospace;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kanji-mark">日本語 道場</div>
+    <h1>Nihongo <span class="accent">Dōjō</span></h1>
+    <div class="subtitle">produzione attiva &middot; niente teoria &middot; solo output</div>
+  </header>
+
+  <div id="stamp" class="stamp"><b id="stampNum">0</b>streak</div>
+  <div class="stats-row" id="statsRow"></div>
+  <div id="app"></div>
+
+  <div class="vocab-panel" id="vocabPanel" style="display:none">
+    <h2>Vocabolario</h2>
+    <div class="vocab-cols">
+      <div class="vocab-col"><div class="label">attivo</div><div class="vocab-tags" id="activeTags"></div></div>
+      <div class="vocab-col"><div class="label">in apprendimento</div><div class="vocab-tags" id="learningTags"></div></div>
+    </div>
+  </div>
+
+  <footer>
+    <button class="secondary" id="resetBtn" style="margin-top:20px;">ricomincia da zero</button>
+    <button class="secondary" id="changeKeyBtn" style="margin-top:10px;">cambia api key</button>
+  </footer>
+</div>
+
+<script>
+const STATE_KEY = 'nihongo-profile-v1';
+const APIKEY_KEY = 'nihongo-gemini-key';
+const MODEL = 'gemini-3.5-flash';
+
+const CURRICULUM_SYSTEM = `Sei il motore didattico di un'app per imparare il giapponese parlato/scritto in romaji, con obiettivo di portare lo studente da zero a un livello B2/C1 nel tempo. Lo studente è italiano, informale, ama anime/manga.
+
+METODO FISSO — non deviare mai:
+- Niente teoria esplicita, niente liste passive di vocaboli. Ogni turno è un compito di PRODUZIONE ATTIVA: dai un compito in italiano, lo studente scrive la frase in giapponese romaji, tu correggi.
+- Il feedback deve essere breve (2-3 righe MASSIMO), specifico, diretto, come un insegnante dal vivo che corregge sul momento — mai un saggio, mai elenco di regole.
+- Scrivi sempre in italiano nei campi feedback, next_exercise_it, next_exercise_hint.
+
+CURRICULUM GRAMMATICALE (sblocco progressivo, dal più semplice al più complesso, copre l'intera progressione fino a B2/C1). Sblocca uno step successivo solo quando l'ultimo padroneggiato ha un tasso di correttezza alto nelle ultime risposte; una volta sbloccato uno step resta mescolato con tutti i precedenti, mai a compartimenti stagni:
+1. Schema base: [soggetto] wa [oggetto] o [verbo]-masu
+2. Domande con ka, omissione soggetto quando ovvio dal contesto
+3. Parole interrogative: nani, dare, doko, itsu, naze; nani no X
+4. Passato (-mashita) e negazione (-masen, -masendeshita)
+5. Aggettivi i e na (con desu/na), comparativi (yori), superlativi (ichiban)
+6. Connettivi: sorekara, demo, node, kedo
+7. Forma -te (richieste, azioni collegate, progressivo -te imasu)
+8. Forme piane (dizionario/nai) accanto a -masu, per il registro informale
+9. Condizionale (-tara, -ba), volitivo, passivo/causativo di base
+10. Costruzioni complesse: to omoimasu, to iimashita, keigo di base (B2+)
+
+VOCABOLARIO — crescita verso B2/C1:
+- Introduci vocaboli nuovi seguendo la frequenza d'uso reale in giapponese (logica JLPT N5→N4→N3→N2→N1), mai parole a caso o troppo rare per il livello attuale.
+- Organizza per campi semantici utili a conversazioni reali (vita quotidiana, lavoro, opinioni/emozioni, tempo, relazioni, hobby/anime) così le frasi restano tematicamente coerenti nella stessa sessione o serie di sessioni.
+- Introduci circa 1-3 parole nuove per turno quando lo studente sta andando bene, non di più: la crescita deve essere sostenibile.
+- Una parola nuova va usata/vista in almeno 3 esercizi diversi prima di poter essere spostata da "vocab_new" (in apprendimento) a "vocab_learned" (attiva, cioè lo studente la usa correttamente in autonomia).
+- Le parole sbagliate di recente devono ripresentarsi più spesso nei prossimi esercizi (ripetizione dilazionata semplice), non sparire.
+- Man mano che il livello sale, proponi anche mini-dialoghi (3-4 scambi in sequenza, sempre con compiti chiari uno alla volta) invece di sole frasi isolate, per esercitare grammatica e vocabolario in un contesto più naturale.
+
+REGISTRO OUTPUT: rispondi SEMPRE E SOLO con un oggetto JSON valido, struttura esatta:
+{
+  "feedback": string o null,
+  "correct": boolean o null,
+  "vocab_learned": array di stringhe,
+  "vocab_new": array di stringhe (formato "giapponese-romaji = italiano"),
+  "grammar_unlocked": string o null,
+  "level_label": string,
+  "next_exercise_it": string,
+  "next_exercise_hint": string
+}`;
+
+let state = null;
+let apiKey = null;
+let uiState = { loading: true, error: null, showStamp: false };
+
+function getApiKey(){ return localStorage.getItem(APIKEY_KEY); }
+function setApiKey(k){ localStorage.setItem(APIKEY_KEY, k); apiKey = k; }
+function clearApiKey(){ localStorage.removeItem(APIKEY_KEY); apiKey = null; }
+
+async function callGemini(userMsg){
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
+  const res = await fetch(url, {
+    method:'POST',
+    headers:{ 'Content-Type':'application/json', 'x-goog-api-key': apiKey },
+    body: JSON.stringify({
+      system_instruction: { parts: [{ text: CURRICULUM_SYSTEM }] },
+      contents: [{ role:'user', parts:[{ text: userMsg }] }],
+      generationConfig: { responseMimeType: 'application/json' }
+    })
+  });
+  if(!res.ok){
+    const errText = await res.text();
+    throw new Error('Errore API Gemini: ' + res.status + ' ' + errText.slice(0,200));
+  }
+  const data = await res.json();
+  if(!data.candidates || !data.candidates.length){
+    throw new Error('Risposta vuota da Gemini (possibile blocco safety filter). Riprova.');
+  }
+  const text = data.candidates[0].content.parts.map(p => p.text || '').join('');
+  return extractJson(text);
+}
+
+// Estrae il primo oggetto JSON bilanciato da una stringa, ignorando
+// qualsiasi testo/backtick/whitespace prima o dopo (Gemini a volte
+// aggiunge cose extra anche con responseMimeType json).
+function extractJson(text){
+  const start = text.indexOf('{');
+  if(start === -1) throw new Error('Nessun JSON trovato nella risposta.');
+  let depth = 0, inString = false, escape = false;
+  for(let i = start; i < text.length; i++){
+    const ch = text[i];
+    if(inString){
+      if(escape) escape = false;
+      else if(ch === '\\') escape = true;
+      else if(ch === '"') inString = false;
+    } else {
+      if(ch === '"') inString = true;
+      else if(ch === '{') depth++;
+      else if(ch === '}'){
+        depth--;
+        if(depth === 0){
+          const jsonStr = text.slice(start, i + 1);
+          return JSON.parse(jsonStr);
+        }
+      }
+    }
+  }
+  throw new Error('JSON incompleto nella risposta di Gemini.');
+}
+
+function defaultState(){
+  return {
+    levelLabel: 'A1 - base',
+    activeVocab: ['watashi/boku = io', 'gohan = riso/pasto', 'hon = libro', 'anime = anime', 'tabemasu = mangio', 'yomimasu = leggo', 'mimasu = guardo'],
+    learningVocab: [],
+    grammarUnlocked: ['schema base wa/o/-masu'],
+    streak: 0, totalCorrect: 0, totalAttempts: 0,
+    currentExercise: null, pendingFeedback: null, pendingCorrect: null
+  };
+}
+
+function loadState(){
+  const raw = localStorage.getItem(STATE_KEY);
+  if(raw){ state = JSON.parse(raw); return true; }
+  return false;
+}
+function saveState(){ localStorage.setItem(STATE_KEY, JSON.stringify(state)); }
+
+async function bootstrap(){
+  apiKey = getApiKey();
+  if(!apiKey){ renderSetup(); return; }
+  const had = loadState();
+  if(!had){ state = defaultState(); await fetchNext(null); }
+  else { render(); }
+}
+
+async function fetchNext(userAnswer){
+  uiState.loading = true; uiState.error = null; render();
+
+  const profileSummary = {
+    level_label: state.levelLabel, active_vocab: state.activeVocab, learning_vocab: state.learningVocab,
+    grammar_unlocked: state.grammarUnlocked, streak: state.streak, total_correct: state.totalCorrect, total_attempts: state.totalAttempts
+  };
+
+  const userMsg = userAnswer === null
+    ? `Primo avvio. Profilo studente: ${JSON.stringify(profileSummary)}. Dammi il primo esercizio (feedback e correct devono essere null).`
+    : `Profilo studente attuale: ${JSON.stringify(profileSummary)}.
+Esercizio dato: "${state.currentExercise.it}" (hint: "${state.currentExercise.hint}")
+Risposta dello studente in romaji: "${userAnswer}"
+Valuta la risposta e dammi il prossimo esercizio secondo le regole del sistema.`;
+
+  try{
+    const result = await callGemini(userMsg);
+
+    if(userAnswer !== null){
+      state.totalAttempts++;
+      if(result.correct){ state.totalCorrect++; state.streak++; uiState.showStamp = true; }
+      else { state.streak = 0; }
+      state.pendingFeedback = result.feedback; state.pendingCorrect = result.correct;
+    } else {
+      state.pendingFeedback = null; state.pendingCorrect = null;
+    }
+
+    if(result.vocab_new && result.vocab_new.length){
+      result.vocab_new.forEach(v => {
+        if(!state.learningVocab.includes(v) && !state.activeVocab.includes(v)) state.learningVocab.push(v);
+      });
+    }
+    if(result.vocab_learned && result.vocab_learned.length){
+      result.vocab_learned.forEach(v => {
+        state.learningVocab = state.learningVocab.filter(x => x !== v);
+        if(!state.activeVocab.includes(v)) state.activeVocab.push(v);
+      });
+    }
+    if(result.grammar_unlocked && !state.grammarUnlocked.includes(result.grammar_unlocked)){
+      state.grammarUnlocked.push(result.grammar_unlocked);
+    }
+    if(result.level_label) state.levelLabel = result.level_label;
+
+    state.currentExercise = { it: result.next_exercise_it, hint: result.next_exercise_hint };
+    saveState();
+  }catch(e){
+    uiState.error = 'Problema con Gemini: ' + e.message + ' — controlla la api key o la connessione.';
+    console.error(e);
+  }
+  uiState.loading = false; render();
+}
+
+async function handleSubmit(){
+  const ta = document.getElementById('answerInput');
+  const val = ta.value.trim();
+  if(!val) return;
+  uiState.showStamp = false;
+  await fetchNext(val);
+}
+
+async function handleReset(){
+  if(!confirm('Sicuro di voler ricominciare da zero? Perderai tutto il progresso salvato.')) return;
+  localStorage.removeItem(STATE_KEY);
+  state = defaultState();
+  uiState.showStamp = false;
+  await fetchNext(null);
+}
+
+function handleChangeKey(){
+  clearApiKey();
+  renderSetup();
+}
+
+function renderSetup(){
+  const app = document.getElementById('app');
+  document.getElementById('statsRow').innerHTML = '';
+  document.getElementById('vocabPanel').style.display = 'none';
+  app.innerHTML = `
+    <div class="setup-card">
+      <p><b>Prima di iniziare:</b> serve una API key gratuita di Gemini. Vai su
+      <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a>,
+      crea una key gratuita (nessuna carta richiesta) e incollala qui sotto.
+      Resta salvata solo sul tuo telefono, non viene mai inviata altrove se non a Google.</p>
+      <label>Gemini API key</label>
+      <input type="password" id="apiKeyInput" placeholder="AIza..." />
+      <div class="actions" style="margin-top:14px;">
+        <button id="saveKeyBtn">salva e inizia</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('saveKeyBtn').addEventListener('click', async () => {
+    const val = document.getElementById('apiKeyInput').value.trim();
+    if(!val) return;
+    setApiKey(val);
+    const had = loadState();
+    if(!had){ state = defaultState(); await fetchNext(null); }
+    else { render(); }
+  });
+}
+
+function render(){
+  const statsRow = document.getElementById('statsRow');
+  const app = document.getElementById('app');
+  const stamp = document.getElementById('stamp');
+  const stampNum = document.getElementById('stampNum');
+  const vocabPanel = document.getElementById('vocabPanel');
+  const activeTags = document.getElementById('activeTags');
+  const learningTags = document.getElementById('learningTags');
+
+  if(!state){ app.innerHTML = '<div class="loading">caricamento<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></div>'; return; }
+
+  statsRow.innerHTML = `
+    <div class="stat"><b>${state.levelLabel}</b>livello</div>
+    <div class="stat"><b>${state.streak}</b>streak</div>
+    <div class="stat"><b>${state.activeVocab.length}</b>vocab attivo</div>
+    <div class="stat"><b>${state.totalAttempts ? Math.round(100*state.totalCorrect/state.totalAttempts) : 0}%</b>precisione</div>
+  `;
+
+  stampNum.textContent = state.streak;
+  stamp.classList.toggle('show', !!uiState.showStamp);
+
+  let html = '';
+  if(uiState.error) html += `<div class="err-box">${escapeHtml(uiState.error)}</div>`;
+
+  if(state.pendingFeedback){
+    html += `<div class="feedback ${state.pendingCorrect ? '' : 'wrong'}">
+      <span class="verdict">${state.pendingCorrect ? '正 corretto' : '× da correggere'}</span>
+      ${escapeHtml(state.pendingFeedback)}
+    </div>`;
+  }
+
+  if(uiState.loading){
+    html += `<div class="loading">l'insegnante sta pensando<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></div>`;
+  } else if(state.currentExercise){
+    html += `<div class="card">
+      <div class="eyebrow">compito</div>
+      <div class="task-it">${escapeHtml(state.currentExercise.it)}</div>
+      ${state.currentExercise.hint ? `<div class="hint">${escapeHtml(state.currentExercise.hint)}</div>` : ''}
+    </div>
+    <div class="answer-zone"><textarea id="answerInput" placeholder="scrivi qui in romaji..."></textarea></div>
+    <div class="actions"><button id="submitBtn">correggi</button></div>`;
+  }
+
+  app.innerHTML = html;
+
+  const submitBtn = document.getElementById('submitBtn');
+  if(submitBtn){
+    submitBtn.addEventListener('click', handleSubmit);
+    const ta = document.getElementById('answerInput');
+    ta.addEventListener('keydown', (e) => { if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); handleSubmit(); } });
+    ta.focus();
+  }
+
+  if(state.activeVocab.length || state.learningVocab.length){
+    vocabPanel.style.display = 'block';
+    activeTags.innerHTML = state.activeVocab.map(v => `<span class="tag active">${escapeHtml(v)}</span>`).join('');
+    learningTags.innerHTML = state.learningVocab.length
+      ? state.learningVocab.map(v => `<span class="tag">${escapeHtml(v)}</span>`).join('')
+      : '<span class="tag">—</span>';
+  }
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+document.getElementById('resetBtn').addEventListener('click', handleReset);
+document.getElementById('changeKeyBtn').addEventListener('click', handleChangeKey);
+
+bootstrap();
+</script>
+</body>
+</html>
