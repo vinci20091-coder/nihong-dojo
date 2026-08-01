@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "io.github.vinci20091_coder.twa",
+    "sha256_cert_fingerprints": ["2C:6B:85:29:84:CE:C3:C1:35:D3:B2:F8:38:6E:87:15:1B:DC:A7:C5:44:0B:4D:20:1B:9E:BD:56:47:55:F2:85"]
+  }
+}]
