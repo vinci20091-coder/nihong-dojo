@@ -139,28 +139,9 @@
 </div>
 
 <script>
-// Gestione automatica dell'aggiornamento cache del Service Worker
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js').then(registration => {
-    registration.onupdatefound = () => {
-      const worker = registration.installing;
-      worker.onstatechange = () => {
-        if (worker.state === 'installed' && navigator.serviceWorker.controller) {
-          if ('caches' in window) {
-            caches.keys().then(names => {
-              for (let name of names) caches.delete(name);
-            });
-          }
-          window.location.reload(true);
-        }
-      };
-    };
-  }).catch(() => {});
-}
-
 const STATE_KEY = 'nihongo-profile-v1';
 const APIKEY_KEY = 'nihongo-gemini-key';
-const MODEL = 'gemini-2.0-flash';
+const MODEL = 'gemini-3.5-flash';
 
 const CURRICULUM_SYSTEM = `Sei il motore didattico di un'app per imparare il giapponese parlato/scritto in romaji, con obiettivo di portare lo studente da zero a un livello B2/C1 nel tempo. Lo studente è italiano, informale, ama anime/manga.
 
@@ -204,6 +185,7 @@ REGISTRO OUTPUT: rispondi SEMPRE E SOLO con un oggetto JSON valido, struttura es
 let state = null;
 let apiKey = null;
 let uiState = { loading: true, error: null, showStamp: false };
+let lastAnswerSent = null;
 
 function getApiKey(){ return localStorage.getItem(APIKEY_KEY); }
 function setApiKey(k){ localStorage.setItem(APIKEY_KEY, k); apiKey = k; }
@@ -216,7 +198,6 @@ async function callGemini(userMsg){
   try{
     const res = await fetch(url, {
       method:'POST',
-      cache: 'no-store',
       headers:{ 'Content-Type':'application/json', 'x-goog-api-key': apiKey },
       body: JSON.stringify({
         system_instruction: { parts: [{ text: CURRICULUM_SYSTEM }] },
@@ -227,6 +208,9 @@ async function callGemini(userMsg){
     });
     if(!res.ok){
       const errText = await res.text();
+      if(res.status === 429){
+        throw new Error('Quota giornaliera gratuita di Gemini esaurita. Il limite si resetta a mezzanotte, ora del Pacifico (Google). Riprova più tardi.');
+      }
       throw new Error('Errore API Gemini: ' + res.status + ' ' + errText.slice(0,200));
     }
     const data = await res.json();
@@ -245,6 +229,9 @@ async function callGemini(userMsg){
   }
 }
 
+// Estrae il primo oggetto JSON bilanciato da una stringa, ignorando
+// qualsiasi testo/backtick/whitespace prima o dopo (Gemini a volte
+// aggiunge cose extra anche con responseMimeType json).
 function extractJson(text){
   const start = text.indexOf('{');
   if(start === -1) throw new Error('Nessun JSON trovato nella risposta.');
@@ -297,6 +284,7 @@ async function bootstrap(){
 }
 
 async function fetchNext(userAnswer){
+  lastAnswerSent = userAnswer;
   uiState.loading = true; uiState.error = null; render();
 
   const profileSummary = {
@@ -342,7 +330,7 @@ Valuta la risposta e dammi il prossimo esercizio secondo le regole del sistema.`
     state.currentExercise = { it: result.next_exercise_it, hint: result.next_exercise_hint };
     saveState();
   }catch(e){
-    uiState.error = 'Problema con Gemini: ' + e.message + ' — controlla la api key o la connessione.';
+    uiState.error = e.message;
     console.error(e);
   }
   uiState.loading = false; render();
@@ -428,7 +416,8 @@ function render(){
   }
 
   if(uiState.loading){
-    html += `<div class="loading">l'insegnante sta pensando<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></div>`;
+    html += `<div class="loading">l'insegnante sta pensando<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></div>
+    <div class="actions"><button class="secondary" id="retryBtn" style="flex:1;">bloccato? riprova</button></div>`;
   } else if(state.currentExercise){
     html += `<div class="card">
       <div class="eyebrow">compito</div>
@@ -440,6 +429,11 @@ function render(){
   }
 
   app.innerHTML = html;
+
+  const retryBtn = document.getElementById('retryBtn');
+  if(retryBtn){
+    retryBtn.addEventListener('click', () => fetchNext(lastAnswerSent));
+  }
 
   const submitBtn = document.getElementById('submitBtn');
   if(submitBtn){
