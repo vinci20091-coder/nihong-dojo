@@ -194,32 +194,35 @@ async function callGemini(userMsg){
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 25000);
-  let res;
   try{
-  res = await fetch(url, {
-    method:'POST',
-    headers:{ 'Content-Type':'application/json', 'x-goog-api-key': apiKey },
-    body: JSON.stringify({
-      system_instruction: { parts: [{ text: CURRICULUM_SYSTEM }] },
-      contents: [{ role:'user', parts:[{ text: userMsg }] }],
-generationConfig: { responseMimeType: 'application/json' }
-    }),
-    signal: controller.signal
-  });
+    const res = await fetch(url, {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'x-goog-api-key': apiKey },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: CURRICULUM_SYSTEM }] },
+        contents: [{ role:'user', parts:[{ text: userMsg }] }],
+        generationConfig: { responseMimeType: 'application/json' }
+      }),
+      signal: controller.signal
+    });
+    if(!res.ok){
+      const errText = await res.text();
+      throw new Error('Errore API Gemini: ' + res.status + ' ' + errText.slice(0,200));
+    }
+    const data = await res.json();
+    if(!data.candidates || !data.candidates.length){
+      throw new Error('Risposta vuota da Gemini (possibile blocco safety filter). Riprova.');
+    }
+    const text = data.candidates[0].content.parts.map(p => p.text || '').join('');
+    return extractJson(text);
   } catch(e){
-    if(e.name === 'AbortError') throw new Error('Nessuna risposta da Gemini dopo 25s. Riprova.');
-    throw new Error('Impossibile contattare Gemini: ' + e.message);
-  } finally { clearTimeout(timeoutId); }
-  if(!res.ok){
-    const errText = await res.text();
-    throw new Error('Errore API Gemini: ' + res.status + ' ' + errText.slice(0,200));
+    if(e.name === 'AbortError'){
+      throw new Error('Nessuna risposta da Gemini dopo 25 secondi. Controlla la connessione e riprova.');
+    }
+    throw e;
+  } finally {
+    clearTimeout(timeoutId);
   }
-  const data = await res.json();
-  if(!data.candidates || !data.candidates.length){
-    throw new Error('Risposta vuota da Gemini (possibile blocco safety filter). Riprova.');
-  }
-  const text = data.candidates[0].content.parts.map(p => p.text || '').join('');
-  return extractJson(text);
 }
 
 // Estrae il primo oggetto JSON bilanciato da una stringa, ignorando
