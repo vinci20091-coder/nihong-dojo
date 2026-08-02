@@ -27,6 +27,8 @@
     --maroon:#7A2438;
     --blue:#2F7FC1;
     --blue-soft:#5B9BD3;
+    --dot-correct:#2FAE6B;
+    --dot-wrong:#E85C41;
   }
   [data-theme="dark"]{
     --paper:#1E1B18;
@@ -44,6 +46,8 @@
     --maroon:#C9677E;
     --blue:#5B9BD3;
     --blue-soft:#7FB0E0;
+    --dot-correct:#4CC98A;
+    --dot-wrong:#F17A61;
   }
   body{transition:background-color .3s ease, color .3s ease;}
   *{box-sizing:border-box;}
@@ -103,7 +107,7 @@
     background:linear-gradient(100deg, var(--ink) 15%, var(--blue) 55%, #FFFFFF 90%);
     -webkit-background-clip:text; background-clip:text;
     -webkit-text-fill-color:transparent;
-    text-shadow:0 1px 0 rgba(0,0,0,0.08); /* piccolo contorno per leggibilita' sulla parte chiara */
+    text-shadow:0 1px 0 rgba(0,0,0,0.08);
   }
   h1 .accent{color:var(--red);}
   .subtitle{font-size:13px;color:var(--ink-soft);font-family:'Yuji Boku', 'Courier New', monospace;letter-spacing:0.05em;}
@@ -134,8 +138,8 @@
 
   .streak-dots{display:flex;justify-content:center;gap:5px;margin:6px 0 4px;}
   .streak-dot{width:9px;height:9px;border-radius:50%;background:var(--grid);}
-  .streak-dot.correct{background:var(--moss);}
-  .streak-dot.wrong{background:var(--error);}
+  .streak-dot.correct{background:var(--dot-correct);}
+  .streak-dot.wrong{background:var(--dot-wrong);}
 
   .stamp{
     position:relative;width:80px;height:80px;border-radius:50%;
@@ -148,8 +152,7 @@
   .stamp.show{opacity:1;transform:rotate(-8deg) scale(1);}
   .stamp b{font-size:26px;font-family:Georgia,serif;}
 
-  .card{background:var(--paper-2);border:1px solid var(--grid);border-radius:14px;border-left:4px solid var(--red);padding:22px 20px;margin-bottom:16px;animation:cardIn .35s ease;}
-  #pathCard, #calendarCard{border-left-color:var(--blue);}
+  .card{background:var(--paper-2);border:1px solid var(--grid);border-radius:14px;border-left:4px solid var(--blue);padding:22px 20px;margin-bottom:16px;animation:cardIn .35s ease;}
   @keyframes cardIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
   .card .eyebrow{font-family:'Yuji Boku', 'Courier New', monospace;font-size:13px;font-weight:bold;font-style:italic;letter-spacing:0.06em;color:var(--ink-soft);margin-bottom:8px;}
   .task-it{font-size:19px;line-height:1.5;}
