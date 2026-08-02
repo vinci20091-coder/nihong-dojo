@@ -7,6 +7,9 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Ronin&display=swap" rel="stylesheet">
 <style>
   :root{
     --paper:#F3EFE3;
@@ -23,6 +26,22 @@
     --indigo:#48507E;
     --maroon:#7A2438;
   }
+  [data-theme="dark"]{
+    --paper:#1E1B18;
+    --paper-2:#28241F;
+    --ink:#EDE6D6;
+    --ink-soft:#B3A996;
+    --grid:#3A342C;
+    --red:#D2564A;
+    --red-soft:#E07A6E;
+    --moss:#7FA066;
+    --gold:#D4B36A;
+    --error:#E2695C;
+    --teal:#5CB3A1;
+    --indigo:#8890C4;
+    --maroon:#C9677E;
+  }
+  body{transition:background-color .3s ease, color .3s ease;}
   *{box-sizing:border-box;}
   body{
     margin:0;
@@ -48,10 +67,10 @@
   .menu-btn:hover{background:var(--red); color:var(--paper); border-color:var(--red);}
 
   .kanji-mark{
-    font-size:15px;letter-spacing:0.4em;color:var(--ink-soft);
-    text-transform:uppercase;font-family:'Courier New', monospace;
+    font-size:17px;letter-spacing:0.4em;color:var(--gold);
+    text-transform:uppercase;font-family:'Ronin', 'Shippori Mincho', Georgia, serif;
   }
-  h1{font-size:34px;margin:6px 0 2px;font-weight:400;letter-spacing:0.02em;}
+  h1{font-size:36px;margin:6px 0 2px;font-weight:700;letter-spacing:0.03em;font-family:'Ronin', 'Shippori Mincho', Georgia, serif;}
   h1 .accent{color:var(--red);}
   .subtitle{font-size:13px;color:var(--ink-soft);font-family:'Courier New', monospace;letter-spacing:0.05em;}
 
@@ -97,7 +116,7 @@
 
   .card{background:var(--paper-2);border:1px solid var(--grid);border-radius:14px;border-left:4px solid var(--red);padding:22px 20px;margin-bottom:16px;animation:cardIn .35s ease;}
   @keyframes cardIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
-  .card .eyebrow{font-family:'Courier New', monospace;font-size:11px;letter-spacing:0.1em;color:var(--ink-soft);text-transform:uppercase;margin-bottom:8px;}
+  .card .eyebrow{font-family:'Ronin', 'Courier New', monospace;font-size:13px;letter-spacing:0.06em;color:var(--ink-soft);margin-bottom:8px;}
   .task-it{font-size:19px;line-height:1.5;}
   .hint{margin-top:10px;font-size:13px;color:var(--ink-soft);font-style:italic;}
 
@@ -185,7 +204,7 @@
   }
   .menu-section:first-of-type{margin-top:36px;}
   .side-menu h3{
-    font-family:'Courier New', monospace; font-size:11px; letter-spacing:0.08em; text-transform:uppercase;
+    font-family:'Ronin', 'Courier New', monospace; font-size:14px; letter-spacing:0.04em;
     color:var(--ink-soft); margin:0 0 10px; font-weight:normal;
   }
   .menu-close{
@@ -234,6 +253,54 @@
   .calendar-day.active{background:var(--red);}
   .calendar-caption{font-size:10px;color:var(--ink-soft);font-family:'Courier New', monospace;margin-top:6px;text-align:center;}
 
+  .progress-path{display:flex;align-items:center;overflow-x:auto;padding:6px 2px;gap:0;}
+  .path-node-wrap{display:flex;align-items:center;flex:none;}
+  .path-node{
+    width:30px;height:30px;border-radius:50%;flex:none;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Courier New', monospace;font-size:11px;font-weight:bold;
+    background:var(--grid);color:var(--ink-soft);border:2px solid var(--grid);
+    transition:background .3s ease, border-color .3s ease, transform .2s ease;
+  }
+  .path-node.done{background:var(--red);border-color:var(--red);color:var(--paper);}
+  .path-node.current{background:var(--paper);border-color:var(--gold);color:var(--gold);transform:scale(1.15);}
+  .path-connector{width:16px;height:2px;background:var(--grid);flex:none;}
+  .path-connector.done{background:var(--red);}
+
+  .history-list{max-height:220px; overflow-y:auto;}
+  .history-item{
+    display:flex; gap:8px; align-items:flex-start; padding:8px 0;
+    border-bottom:1px solid var(--grid); font-size:12px;
+  }
+  .history-item:last-child{border-bottom:none;}
+  .history-icon{flex:none; font-size:14px; margin-top:1px;}
+  .history-body{flex:1; min-width:0;}
+  .history-task{color:var(--ink-soft); font-size:11px; margin-bottom:2px;}
+  .history-answer{color:var(--ink); font-family:'Courier New', monospace; word-break:break-word;}
+  .history-empty{color:var(--ink-soft); font-size:12px; text-align:center; padding:10px 0;}
+  .weekly-goal-wrap{margin-top:12px;}
+  .level-bar-fill.weekly{background:linear-gradient(90deg, var(--teal), var(--moss));}
+
+  .mode-switch{display:flex;justify-content:center;gap:8px;margin-top:14px;}
+  .mode-btn{
+    flex:none; background:var(--paper-2); border:1px solid var(--grid); color:var(--ink-soft);
+    border-radius:20px; padding:7px 16px; font-size:11px;
+  }
+  .mode-btn.active-choice{background:var(--indigo); border-color:var(--indigo); color:var(--paper);}
+
+  .chat-wrap{display:flex; flex-direction:column; gap:10px; margin-bottom:14px;}
+  .chat-bubble{
+    max-width:85%; padding:12px 14px; border-radius:14px; font-size:14px; line-height:1.5;
+    animation:cardIn .3s ease;
+  }
+  .chat-bubble.user{align-self:flex-end; background:var(--indigo); color:var(--paper); border-bottom-right-radius:4px;}
+  .chat-bubble.ai{align-self:flex-start; background:var(--paper-2); border:1px solid var(--grid); border-bottom-left-radius:4px;}
+  .chat-bubble .chat-jp{font-size:15px; margin-bottom:2px;}
+  .chat-bubble .chat-romaji{font-family:'Courier New', monospace; font-size:12px; opacity:0.85;}
+  .chat-bubble .chat-note{margin-top:6px; font-size:12px; font-style:italic; opacity:0.85; border-top:1px dashed currentColor; padding-top:6px;}
+  .chat-bubble .chat-speak{margin-top:6px;}
+  .chat-empty{text-align:center; color:var(--ink-soft); font-size:13px; padding:30px 10px;}
+
   .review-btn-wrap{margin-bottom:16px;}
   .review-btn{background:var(--indigo);border-color:var(--indigo);}
   .review-btn:hover{background:var(--maroon);border-color:var(--maroon);}
@@ -273,6 +340,15 @@
   </div>
 
   <div class="menu-section">
+    <h3 id="menuThemeTitle">🎨 Tema</h3>
+    <div class="menu-row">
+      <button class="secondary" id="themeLightBtn">☀️ chiaro</button>
+      <button class="secondary" id="themeDarkBtn">🌙 scuro</button>
+    </div>
+  </div>
+
+  <div class="menu-section">
+
     <h3 id="menuVocabTitle">📚 Vocabolario</h3>
     <input type="text" id="vocabSearch" class="menu-search">
     <div class="search-results" id="searchResults" style="display:none;">
@@ -296,6 +372,11 @@
   </div>
 
   <div class="menu-section">
+    <h3 id="menuHistoryTitle">📜 Cronologia</h3>
+    <div class="history-list" id="historyList"></div>
+  </div>
+
+  <div class="menu-section">
     <h3 id="menuReminderTitle">🔔 Promemoria</h3>
     <div class="menu-row">
       <button class="secondary" id="reminderOnBtn"></button>
@@ -306,6 +387,7 @@
 
   <div class="menu-section">
     <h3 id="menuAccountTitle">⚙️ Account</h3>
+    <button class="secondary menu-footer-btn" id="shareBtn"></button>
     <button class="secondary menu-footer-btn" id="exportBtn"></button>
     <button class="secondary menu-footer-btn" id="importBtn"></button>
     <input type="file" id="importFile" accept="application/json" style="display:none;">
@@ -324,15 +406,29 @@
       <div class="level-bar-track"><div class="level-bar-fill" id="levelBarFill" style="width:0%"></div></div>
       <div class="level-bar-label" id="levelBarLabel"></div>
     </div>
+    <div class="mode-switch" id="modeSwitch">
+      <button class="mode-btn" id="modeExerciseBtn"></button>
+      <button class="mode-btn" id="modeChatBtn"></button>
+    </div>
   </header>
 
   <div id="stamp" class="stamp"><b id="stampNum">0</b>streak</div>
   <div class="stats-row" id="statsRow"></div>
   <div class="streak-dots" id="streakDots"></div>
+
+  <div class="card" id="pathCard" style="padding:14px 16px;">
+    <div class="eyebrow" id="pathTitle">Percorso</div>
+    <div class="progress-path" id="progressPath"></div>
+  </div>
+
   <div class="card" id="calendarCard" style="padding:14px 16px;">
     <div class="eyebrow" id="calendarTitle">Costanza</div>
     <div class="calendar-grid" id="calendarGrid"></div>
     <div class="calendar-caption" id="calendarCaption"></div>
+    <div class="weekly-goal-wrap">
+      <div class="level-bar-track"><div class="level-bar-fill weekly" id="weeklyGoalFill" style="width:0%"></div></div>
+      <div class="calendar-caption" id="weeklyGoalCaption"></div>
+    </div>
   </div>
 
   <div id="app"></div>
@@ -341,15 +437,18 @@
 
 <script>
 const STATE_KEY = 'nihongo-profile-v1';
+const PENDING_KEY = 'nihongo-pending-answer';
+const MODE_KEY = 'nihongo-app-mode';
 const APIKEY_KEY = 'nihongo-gemini-key';
 const SOUND_KEY = 'nihongo-sound-enabled';
+const THEME_KEY = 'nihongo-theme';
 const LANG_KEY = 'nihongo-ui-lang';
 const MODEL = 'gemini-3.5-flash';
 
 const UI_TEXT = {
   it: {
     subtitle: "produzione attiva · niente teoria · solo output",
-    menuLangTitle: "🌐 Lingua", menuSoundTitle: "🔊 Suoni", menuVocabTitle: "📚 Vocabolario", menuAccountTitle: "⚙️ Account",
+    menuLangTitle: "🌐 Lingua", menuSoundTitle: "🔊 Suoni", menuThemeTitle: "🎨 Tema", menuVocabTitle: "📚 Vocabolario", menuAccountTitle: "⚙️ Account",
     labelActive: "attivo", labelLearning: "in apprendimento",
     resetBtn: "ricomincia da zero", changeKeyBtn: "cambia api key",
     setupIntro: 'Vai su <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a>, crea una key gratuita (nessuna carta richiesta) e incollala qui sotto. Resta salvata solo sul tuo telefono, non viene mai inviata altrove se non a Google.',
@@ -358,6 +457,9 @@ const UI_TEXT = {
     livello: "livello", streak: "streak", record: "record", oggi: "oggi",
     vocabAttivo: "vocab attivo", precisione: "precisione", strutture: "strutture sbloccate",
     compito: "compito", scriviQui: "scrivi qui in romaji...", correggi: "correggi",
+    modeExerciseBtn: "📝 esercizi", modeChatBtn: "💬 conversazione",
+    chatVuota: "Scrivi qualcosa in giapponese (o italiano) per iniziare a chiacchierare!",
+    chatPlaceholder: "scrivi in romaji o italiano...", invia: "invia",
     thinking: "l'insegnante sta pensando", bloccato: "bloccato? riprova",
     ripassa: "ripassa queste parole se puoi",
     corretto: "正 corretto", daCorreggere: "× da correggere", ascolta: "🔊 ascolta",
@@ -366,7 +468,10 @@ const UI_TEXT = {
     errApiKey: 'API key non valida. Tocca "cambia api key" e reinseriscila con attenzione.',
     errTimeout: "Nessuna risposta da Gemini dopo 25 secondi. Controlla la connessione e riprova.",
     errEmpty: "Risposta vuota da Gemini (possibile blocco safety filter). Riprova.",
+    errOffline: "Connessione assente. La tua risposta è salvata e verrà inviata automaticamente appena torni online.",
+    retryingOffline: "Connessione tornata — invio la risposta in sospeso...",
     langInstruction: "Scrivi SEMPRE in italiano nei campi feedback, next_exercise_it, next_exercise_hint.",
+    langInstructionChat: "Scrivi SEMPRE in italiano nel campo \"note\".",
     micLabel: "🎤 pronuncia", micListening: "🎤 sto ascoltando...",
     micNotSupported: "Riconoscimento vocale non disponibile su questo dispositivo/browser.",
     micNoResult: "Non ho sentito nulla, riprova.",
@@ -375,10 +480,16 @@ const UI_TEXT = {
     pronOff: "Non corrisponde bene — hai detto:",
     vocabSearchPlaceholder: "🔍 cerca...",
     risultatiTrovati: "risultati trovati", nessunRisultato: "nessun risultato",
-    calendarTitle: "Costanza", giorniAttivi: "giorni attivi (ultimi 30)",
+    calendarTitle: "Costanza", giorniAttivi: "giorni attivi (ultimi 30)", pathTitle: "Percorso grammaticale",
     ripassaBtn: "🔁 ripassa parole deboli", ripassaVuoto: "Nessuna parola da ripassare ancora — continua così!",
     exportBtn: "⬇️ esporta progresso", importBtn: "⬆️ importa progresso",
     exportSuccess: "Progresso esportato.", importSuccess: "Progresso importato con successo!",
+    cronologiaVuota: "Nessun esercizio ancora — inizia a rispondere!",
+    menuHistoryTitle: "📜 Cronologia",
+    obiettivoSettimanale: "questa settimana",
+    shareBtn: "📤 condividi progressi",
+    shareCopied: "Riepilogo copiato negli appunti!",
+    shareTextTemplate: "🈴 Nihongo Dōjō — i miei progressi:\n📊 Livello: {level}\n🔥 Record streak: {streak}\n📚 Vocaboli attivi: {vocab}\n🎯 Precisione: {accuracy}%",
     importError: "File non valido, importazione annullata.",
     menuReminderTitle: "🔔 Promemoria",
     reminderOn: "🔔 attiva", reminderOff: "🔕 disattiva",
@@ -388,7 +499,7 @@ const UI_TEXT = {
   },
   en: {
     subtitle: "active production · no theory · output only",
-    menuLangTitle: "🌐 Language", menuSoundTitle: "🔊 Sound", menuVocabTitle: "📚 Vocabulary", menuAccountTitle: "⚙️ Account",
+    menuLangTitle: "🌐 Language", menuSoundTitle: "🔊 Sound", menuThemeTitle: "🎨 Theme", menuVocabTitle: "📚 Vocabulary", menuAccountTitle: "⚙️ Account",
     labelActive: "active", labelLearning: "learning",
     resetBtn: "start over", changeKeyBtn: "change api key",
     setupIntro: 'Go to <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a>, create a free key (no card required) and paste it below. It stays saved only on your phone, never sent anywhere except to Google.',
@@ -397,6 +508,9 @@ const UI_TEXT = {
     livello: "level", streak: "streak", record: "record", oggi: "today",
     vocabAttivo: "active vocab", precisione: "accuracy", strutture: "structures unlocked",
     compito: "task", scriviQui: "write here in romaji...", correggi: "check",
+    modeExerciseBtn: "📝 exercises", modeChatBtn: "💬 conversation",
+    chatVuota: "Write something in Japanese (or English) to start chatting!",
+    chatPlaceholder: "write in romaji or English...", invia: "send",
     thinking: "the teacher is thinking", bloccato: "stuck? retry",
     ripassa: "review these words if you can",
     corretto: "正 correct", daCorreggere: "× needs work", ascolta: "🔊 listen",
@@ -405,7 +519,10 @@ const UI_TEXT = {
     errApiKey: 'Invalid API key. Tap "change api key" and re-enter it carefully.',
     errTimeout: "No response from Gemini after 25 seconds. Check your connection and retry.",
     errEmpty: "Empty response from Gemini (possible safety filter block). Retry.",
+    errOffline: "No connection. Your answer is saved and will be sent automatically once you're back online.",
+    retryingOffline: "Back online — sending your pending answer...",
     langInstruction: "Always write in English in the feedback, next_exercise_it, next_exercise_hint fields (even though the field is named 'it', use English).",
+    langInstructionChat: "Always write in English in the \"note\" field.",
     micLabel: "🎤 pronounce", micListening: "🎤 listening...",
     micNotSupported: "Speech recognition not available on this device/browser.",
     micNoResult: "Didn't catch that, try again.",
@@ -414,10 +531,16 @@ const UI_TEXT = {
     pronOff: "Doesn't quite match — I heard:",
     vocabSearchPlaceholder: "🔍 search...",
     risultatiTrovati: "results found", nessunRisultato: "no results",
-    calendarTitle: "Consistency", giorniAttivi: "active days (last 30)",
+    calendarTitle: "Consistency", giorniAttivi: "active days (last 30)", pathTitle: "Grammar path",
     ripassaBtn: "🔁 review weak words", ripassaVuoto: "No words to review yet — keep going!",
     exportBtn: "⬇️ export progress", importBtn: "⬆️ import progress",
     exportSuccess: "Progress exported.", importSuccess: "Progress imported successfully!",
+    cronologiaVuota: "No exercises yet — start answering!",
+    menuHistoryTitle: "📜 History",
+    obiettivoSettimanale: "this week",
+    shareBtn: "📤 share progress",
+    shareCopied: "Summary copied to clipboard!",
+    shareTextTemplate: "🈴 Nihongo Dōjō — my progress:\n📊 Level: {level}\n🔥 Best streak: {streak}\n📚 Active vocab: {vocab}\n🎯 Accuracy: {accuracy}%",
     importError: "Invalid file, import cancelled.",
     menuReminderTitle: "🔔 Reminder",
     reminderOn: "🔔 enable", reminderOff: "🔕 disable",
@@ -477,6 +600,8 @@ let state = null;
 let apiKey = null;
 let uiState = { loading: true, error: null, showStamp: false };
 let lastAnswerSent = null;
+let appMode = 'exercise'; // 'exercise' | 'chat'
+let chatLoading = false;
 let soundEnabled = true;
 let audioCtx = null;
 let recognition = null;
@@ -535,6 +660,33 @@ function loadSoundPref(){
   const v = localStorage.getItem(SOUND_KEY);
   soundEnabled = v === null ? true : v === '1';
 }
+
+function loadThemePref(){
+  const theme = localStorage.getItem(THEME_KEY) || 'light';
+  document.body.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
+}
+function setTheme(theme){
+  localStorage.setItem(THEME_KEY, theme);
+  document.body.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
+  renderMenuChoices();
+}
+
+function loadModePref(){
+  appMode = localStorage.getItem(MODE_KEY) || 'exercise';
+}
+function setMode(mode){
+  appMode = mode;
+  localStorage.setItem(MODE_KEY, mode);
+  updateModeButtons();
+  render();
+}
+function updateModeButtons(){
+  const exBtn = document.getElementById('modeExerciseBtn');
+  const chatBtn = document.getElementById('modeChatBtn');
+  if(exBtn) exBtn.classList.toggle('active-choice', appMode === 'exercise');
+  if(chatBtn) chatBtn.classList.toggle('active-choice', appMode === 'chat');
+}
+
 function setSound(on){
   soundEnabled = on;
   localStorage.setItem(SOUND_KEY, soundEnabled ? '1' : '0');
@@ -556,6 +708,11 @@ function applyStaticTexts(){
   document.getElementById('menuSoundTitle').textContent = t('menuSoundTitle');
   document.getElementById('menuVocabTitle').textContent = t('menuVocabTitle');
   document.getElementById('menuAccountTitle').textContent = t('menuAccountTitle');
+  document.getElementById('menuThemeTitle').textContent = t('menuThemeTitle');
+  document.getElementById('menuHistoryTitle').textContent = t('menuHistoryTitle');
+  document.getElementById('shareBtn').textContent = t('shareBtn');
+  document.getElementById('modeExerciseBtn').textContent = t('modeExerciseBtn');
+  document.getElementById('modeChatBtn').textContent = t('modeChatBtn');
   document.getElementById('menuReminderTitle').textContent = t('menuReminderTitle');
   document.getElementById('labelActive').innerHTML = `<span class="collapse-arrow" id="arrowActive">▾</span> ${t('labelActive')}<span class="vocab-count" id="activeCount"></span>`;
   document.getElementById('labelLearning').innerHTML = `<span class="collapse-arrow" id="arrowLearning">▾</span> ${t('labelLearning')}`;
@@ -563,6 +720,7 @@ function applyStaticTexts(){
   document.getElementById('changeKeyBtn').textContent = t('changeKeyBtn');
   document.getElementById('vocabSearch').placeholder = t('vocabSearchPlaceholder');
   document.getElementById('calendarTitle').textContent = t('calendarTitle');
+  document.getElementById('pathTitle').textContent = t('pathTitle');
   document.getElementById('reminderOnBtn').textContent = t('reminderOn');
   document.getElementById('reminderOffBtn').textContent = t('reminderOff');
   document.getElementById('reminderNote').textContent = t('reminderNote');
@@ -576,6 +734,9 @@ function renderMenuChoices(){
   document.getElementById('menuSoundOff').classList.toggle('active-choice', !soundEnabled);
   document.getElementById('reminderOnBtn').classList.toggle('active-choice', isReminderEnabled());
   document.getElementById('reminderOffBtn').classList.toggle('active-choice', !isReminderEnabled());
+  const currentTheme = document.body.getAttribute('data-theme') || 'light';
+  document.getElementById('themeLightBtn').classList.toggle('active-choice', currentTheme === 'light');
+  document.getElementById('themeDarkBtn').classList.toggle('active-choice', currentTheme === 'dark');
 }
 
 function speakJapanese(text){
@@ -611,7 +772,7 @@ function normalizeForCompare(str){
 // Usa il microfono come metodo alternativo per rispondere all'esercizio:
 // riconosce il parlato in giapponese e lo inserisce nella casella di risposta,
 // pronta per essere corretta esattamente come un testo digitato.
-function startVoiceAnswerInput(){
+function startVoiceInputInto(targetId){
   const rec = getRecognition();
   if(!rec){
     pronResult = { unsupported: true };
@@ -628,7 +789,7 @@ function startVoiceAnswerInput(){
     isRecording = false;
     pronResult = null;
     render();
-    const ta = document.getElementById('answerInput');
+    const ta = document.getElementById(targetId);
     if(ta){
       ta.value = heard;
       ta.focus();
@@ -645,12 +806,14 @@ function startVoiceAnswerInput(){
   };
   try{ rec.start(); }catch(e){ isRecording = false; pronResult = { unsupported: true }; render(); }
 }
+function startVoiceAnswerInput(){ startVoiceInputInto('answerInput'); }
+function startVoiceChatInput(){ startVoiceInputInto('chatInput'); }
 
 function getApiKey(){ return localStorage.getItem(APIKEY_KEY); }
 function setApiKey(k){ localStorage.setItem(APIKEY_KEY, k); apiKey = k; }
 function clearApiKey(){ localStorage.removeItem(APIKEY_KEY); apiKey = null; }
 
-async function callGemini(userMsg){
+async function callGeminiRaw(userMsg, systemPrompt){
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 25000);
@@ -659,7 +822,7 @@ async function callGemini(userMsg){
       method:'POST',
       headers:{ 'Content-Type':'application/json', 'x-goog-api-key': apiKey },
       body: JSON.stringify({
-        system_instruction: { parts: [{ text: CURRICULUM_SYSTEM_FOR() }] },
+        system_instruction: { parts: [{ text: systemPrompt }] },
         contents: [{ role:'user', parts:[{ text: userMsg }] }],
         generationConfig: { responseMimeType: 'application/json' }
       }),
@@ -682,6 +845,31 @@ async function callGemini(userMsg){
     clearTimeout(timeoutId);
   }
 }
+async function callGemini(userMsg){
+  return callGeminiRaw(userMsg, CURRICULUM_SYSTEM_FOR());
+}
+
+function CHAT_SYSTEM_FOR(){
+  return `Sei un partner di conversazione giapponese per uno studente italiano che vuole esercitarsi con dialoghi liberi, non esercizi strutturati. Lo studente ama anime/manga.
+
+REGOLE:
+- Rispondi sempre come se steste chiacchierando in giapponese, in modo naturale e amichevole, su qualsiasi argomento lo studente porti.
+- ${t('langInstructionChat')}
+- Includi correzioni SOLO se lo studente ha fatto un errore grammaticale evidente nel suo ultimo messaggio, in modo breve e gentile, senza interrompere il flusso della conversazione.
+- Adatta la difficoltà del tuo giapponese al livello dello studente (fornito nel profilo), restando leggermente sopra per spingerlo a crescere.
+- Tieni le risposte brevi (1-3 frasi), come farebbe una persona vera in chat, non un saggio.
+
+REGISTRO OUTPUT: rispondi SEMPRE E SOLO con un oggetto JSON valido, struttura esatta:
+{
+  "reply_jp": string (la tua risposta in caratteri giapponesi reali, hiragana/katakana/kanji),
+  "reply_romaji": string (la stessa risposta traslitterata in romaji),
+  "note": string o null (una correzione breve se necessaria, nella lingua dell'interfaccia; null se non serve)
+}`;
+}
+async function callGeminiChat(userMsg){
+  return callGeminiRaw(userMsg, CHAT_SYSTEM_FOR());
+}
+
 
 function extractJson(text){
   const start = text.indexOf('{');
@@ -713,6 +901,8 @@ function defaultState(){
     grammarUnlocked: ['schema base wa/o/-masu'],
     streak: 0, bestStreak: 0, totalCorrect: 0, totalAttempts: 0,
     recentResults: [], exercisesToday: 0, lastActiveDate: null, activityDates: [],
+    dailyCounts: {}, weeklyGoal: 20,
+    history: [], chatMessages: [],
     currentExercise: null, pendingFeedback: null, pendingCorrect: null, pendingJpAnswer: null
   };
 }
@@ -726,6 +916,10 @@ function loadState(){
     if(state.exercisesToday === undefined){ state.exercisesToday = 0; state.lastActiveDate = null; }
     if(state.pendingJpAnswer === undefined) state.pendingJpAnswer = null;
     if(!state.activityDates) state.activityDates = [];
+    if(!state.dailyCounts) state.dailyCounts = {};
+    if(state.weeklyGoal === undefined) state.weeklyGoal = 20;
+    if(!state.history) state.history = [];
+    if(!state.chatMessages) state.chatMessages = [];
     return true;
   }
   return false;
@@ -738,10 +932,27 @@ function bumpDailyCounter(){
   state.exercisesToday++;
   if(!state.activityDates.includes(today)) state.activityDates.push(today);
   if(state.activityDates.length > 60) state.activityDates = state.activityDates.slice(-60);
+  state.dailyCounts[today] = (state.dailyCounts[today] || 0) + 1;
 }
 function levelProgressPercent(){
   const n = state.grammarUnlocked ? state.grammarUnlocked.length : 1;
   return Math.min(100, Math.round((n / 10) * 100));
+}
+
+// Somma gli esercizi fatti negli ultimi 7 giorni (incluso oggi) per l'obiettivo settimanale
+function weeklyCount(){
+  let total = 0;
+  for(let i = 0; i < 7; i++){
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    total += (state.dailyCounts[d.toDateString()] || 0);
+  }
+  return total;
+}
+
+function pushHistory(entry){
+  state.history.unshift(entry);
+  if(state.history.length > 15) state.history = state.history.slice(0, 15);
 }
 
 // Genera gli ultimi 30 giorni (dal piu vecchio al piu recente) per il calendario di costanza
@@ -765,6 +976,35 @@ function renderCalendar(){
   caption.textContent = `${activeCount}/30 ${t('giorniAttivi')}`;
 }
 
+function renderProgressPath(){
+  const path = document.getElementById('progressPath');
+  if(!path || !state) return;
+  const unlocked = state.grammarUnlocked ? state.grammarUnlocked.length : 1;
+  let html = '';
+  for(let i = 1; i <= 10; i++){
+    const isDone = i < unlocked || (i === unlocked && i === 10);
+    const isCurrent = i === unlocked && i < 10;
+    const label = state.grammarUnlocked && state.grammarUnlocked[i-1] ? state.grammarUnlocked[i-1] : '';
+    const cls = isDone ? 'done' : (isCurrent ? 'current' : '');
+    html += `<div class="path-node-wrap">
+      <div class="path-node ${cls}" title="${escapeHtml(label)}">${i}</div>
+      ${i < 10 ? `<div class="path-connector ${i < unlocked ? 'done' : ''}"></div>` : ''}
+    </div>`;
+  }
+  path.innerHTML = html;
+}
+
+function renderWeeklyGoal(){
+  const fill = document.getElementById('weeklyGoalFill');
+  const caption = document.getElementById('weeklyGoalCaption');
+  if(!fill || !caption || !state) return;
+  const count = weeklyCount();
+  const goal = state.weeklyGoal || 20;
+  const pct = Math.min(100, Math.round((count / goal) * 100));
+  fill.style.width = pct + '%';
+  caption.textContent = `${count}/${goal} ${t('obiettivoSettimanale')}`;
+}
+
 
 function openMenu(){
   document.getElementById('sideMenu').classList.add('show');
@@ -775,17 +1015,42 @@ function closeMenu(){
   document.getElementById('overlay').classList.remove('show');
 }
 
+// ===== GESTIONE OFFLINE: salva la risposta se cade la rete, reinvia al ritorno online =====
+function savePendingAnswer(answer){
+  try{ localStorage.setItem(PENDING_KEY, JSON.stringify({ answer, savedAt: Date.now() })); }catch(e){}
+}
+function getPendingAnswer(){
+  try{
+    const raw = localStorage.getItem(PENDING_KEY);
+    return raw ? JSON.parse(raw) : null;
+  }catch(e){ return null; }
+}
+function clearPendingAnswer(){
+  try{ localStorage.removeItem(PENDING_KEY); }catch(e){}
+}
+async function retryPendingAnswerIfAny(){
+  const pending = getPendingAnswer();
+  if(pending && pending.answer && state && state.currentExercise){
+    showToast(t('retryingOffline'));
+    await fetchNext(pending.answer);
+  }
+}
+
 async function bootstrap(){
   loadSoundPref();
+  loadThemePref();
   loadLangPref();
+  loadModePref();
   applyStaticTexts();
   renderMenuChoices();
+  updateModeButtons();
   apiKey = getApiKey();
   if(!apiKey){ renderSetup(); return; }
   const had = loadState();
   if(!had){ state = defaultState(); await fetchNext(null); }
   else { render(); }
   setTimeout(checkReminderNow, 1500);
+  window.addEventListener('online', retryPendingAnswerIfAny);
 }
 
 async function fetchNext(userAnswer, forceReviewMode){
@@ -831,6 +1096,14 @@ Valuta la risposta e dammi il prossimo esercizio secondo le regole del sistema.`
       }
       state.pendingFeedback = result.feedback; state.pendingCorrect = result.correct;
       state.pendingJpAnswer = result.correct_answer_jp || null;
+      pushHistory({
+        task: state.currentExercise ? state.currentExercise.it : '',
+        answer: userAnswer,
+        correct: !!result.correct,
+        feedback: result.feedback,
+        jp: result.correct_answer_jp || null,
+        date: new Date().toISOString()
+      });
     } else {
       state.pendingFeedback = null; state.pendingCorrect = null; state.pendingJpAnswer = null;
     }
@@ -853,8 +1126,15 @@ Valuta la risposta e dammi il prossimo esercizio secondo le regole del sistema.`
 
     state.currentExercise = { it: result.next_exercise_it, hint: result.next_exercise_hint };
     saveState();
+    clearPendingAnswer();
   }catch(e){
-    uiState.error = e.message;
+    const isOffline = !navigator.onLine || e.message === 'Failed to fetch' || e.name === 'TypeError';
+    if(isOffline && userAnswer !== null && !forceReviewMode){
+      savePendingAnswer(userAnswer);
+      uiState.error = t('errOffline');
+    } else {
+      uiState.error = e.message;
+    }
     console.error(e);
   }
   uiState.loading = false; render();
@@ -870,6 +1150,49 @@ async function handleSubmit(){
   await fetchNext(val);
 }
 
+async function sendChatMessage(){
+  ensureAudioUnlocked();
+  const ta = document.getElementById('chatInput');
+  if(!ta) return;
+  const val = ta.value.trim();
+  if(!val || chatLoading) return;
+  playTapSound();
+  ta.value = '';
+
+  state.chatMessages.push({ role: 'user', text: val });
+  saveState();
+  chatLoading = true;
+  render();
+
+  const profileSummary = {
+    level_label: state.levelLabel, active_vocab: state.activeVocab, learning_vocab: state.learningVocab
+  };
+  const recentTurns = state.chatMessages.slice(-6).map(m =>
+    m.role === 'user' ? `Studente: ${m.text}` : `Tu: ${m.text_jp || m.text}`
+  ).join('\n');
+  const userMsg = `Profilo studente: ${JSON.stringify(profileSummary)}.
+Conversazione recente:
+${recentTurns}
+
+Rispondi al messaggio più recente dello studente, continuando la conversazione naturalmente.`;
+
+  try{
+    const result = await callGeminiChat(userMsg);
+    state.chatMessages.push({
+      role: 'ai',
+      text: result.reply_romaji || '',
+      text_jp: result.reply_jp || '',
+      note: result.note || null
+    });
+    saveState();
+  }catch(e){
+    uiState.error = e.message;
+    console.error(e);
+  }
+  chatLoading = false;
+  render();
+}
+
 async function handleReviewMode(){
   if(!state.learningVocab || !state.learningVocab.length){
     showToast(t('ripassaVuoto'));
@@ -883,6 +1206,25 @@ function showToast(msg){
   toast.textContent = msg;
   toast.classList.add('show');
   setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
+async function handleShare(){
+  const text = t('shareTextTemplate')
+    .replace('{level}', state.levelLabel)
+    .replace('{streak}', state.bestStreak || 0)
+    .replace('{vocab}', state.activeVocab.length)
+    .replace('{accuracy}', state.totalAttempts ? Math.round(100*state.totalCorrect/state.totalAttempts) : 0);
+  if(navigator.share){
+    try{ await navigator.share({ title: 'Nihongo Dōjō', text }); }
+    catch(e){ /* condivisione annullata dall'utente, ignora */ }
+  } else if(navigator.clipboard){
+    try{
+      await navigator.clipboard.writeText(text);
+      showToast(t('shareCopied'));
+    }catch(e){ showToast(text); }
+  } else {
+    showToast(text);
+  }
 }
 
 function handleExport(){
@@ -1038,9 +1380,20 @@ function render(){
   ).join('');
 
   renderCalendar();
+  renderProgressPath();
+  renderWeeklyGoal();
 
   stampNum.textContent = state.streak;
   stamp.classList.toggle('show', !!uiState.showStamp);
+
+  updateModeButtons();
+
+  if(appMode === 'chat'){
+    renderChatUI();
+    renderVocabTags();
+    renderHistory();
+    return;
+  }
 
   let html = '';
   if(uiState.error) html += `<div class="err-box">${escapeHtml(uiState.error)}</div>`;
@@ -1106,6 +1459,87 @@ function render(){
   }
 
   renderVocabTags();
+  renderHistory();
+}
+
+function renderChatUI(){
+  const app = document.getElementById('app');
+  if(!app) return;
+
+  let html = '';
+  if(uiState.error) html += `<div class="err-box">${escapeHtml(uiState.error)}</div>`;
+
+  html += `<div class="chat-wrap" id="chatWrap">`;
+  if(!state.chatMessages || !state.chatMessages.length){
+    html += `<div class="chat-empty">${t('chatVuota')}</div>`;
+  } else {
+    html += state.chatMessages.map((m, i) => {
+      if(m.role === 'user'){
+        return `<div class="chat-bubble user">${escapeHtml(m.text)}</div>`;
+      }
+      return `<div class="chat-bubble ai">
+        <div class="chat-jp">${escapeHtml(m.text_jp || '')}</div>
+        <div class="chat-romaji">${escapeHtml(m.text || '')}</div>
+        ${m.text_jp ? `<div class="chat-speak"><button class="speak-btn" data-chat-speak="${i}">${t('ascolta')}</button></div>` : ''}
+        ${m.note ? `<div class="chat-note">${escapeHtml(m.note)}</div>` : ''}
+      </div>`;
+    }).join('');
+  }
+  if(chatLoading){
+    html += `<div class="chat-bubble ai loading" style="padding:10px 14px;">${t('thinking')}<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></div>`;
+  }
+  html += `</div>`;
+
+  html += `<div class="answer-zone"><textarea id="chatInput" placeholder="${t('chatPlaceholder')}"></textarea></div>
+  <div class="actions">
+    <button id="chatSendBtn" ${chatLoading ? 'disabled' : ''}>${t('invia')}</button>
+    <button class="mic-btn ${isRecording ? 'recording' : ''}" id="chatMicBtn" title="${t('micLabel')}">${isRecording ? '🎤...' : '🎤'}</button>
+  </div>`;
+
+  app.innerHTML = html;
+
+  document.querySelectorAll('[data-chat-speak]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.getAttribute('data-chat-speak'), 10);
+      const msg = state.chatMessages[idx];
+      if(msg && msg.text_jp) speakJapanese(msg.text_jp);
+    });
+  });
+
+  const sendBtn = document.getElementById('chatSendBtn');
+  if(sendBtn) sendBtn.addEventListener('click', sendChatMessage);
+
+  const chatMicBtn = document.getElementById('chatMicBtn');
+  if(chatMicBtn) chatMicBtn.addEventListener('click', startVoiceChatInput);
+
+  const chatInput = document.getElementById('chatInput');
+  if(chatInput){
+    chatInput.addEventListener('keydown', (e) => {
+      if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); sendChatMessage(); }
+    });
+    if(!chatLoading) chatInput.focus();
+  }
+
+  const wrap = document.getElementById('chatWrap');
+  if(wrap) wrap.scrollTop = wrap.scrollHeight;
+}
+
+function renderHistory(){
+  const list = document.getElementById('historyList');
+  if(!list || !state) return;
+  if(!state.history || !state.history.length){
+    list.innerHTML = `<div class="history-empty">${t('cronologiaVuota')}</div>`;
+    return;
+  }
+  list.innerHTML = state.history.map(h => `
+    <div class="history-item">
+      <span class="history-icon">${h.correct ? '✅' : '❌'}</span>
+      <div class="history-body">
+        <div class="history-task">${escapeHtml(h.task || '')}</div>
+        <div class="history-answer">${escapeHtml(h.answer || '')}</div>
+      </div>
+    </div>
+  `).join('');
 }
 
 function renderVocabTags(){
@@ -1200,6 +1634,11 @@ document.getElementById('resetBtn').addEventListener('click', handleReset);
 document.getElementById('changeKeyBtn').addEventListener('click', handleChangeKey);
 document.getElementById('reminderOnBtn').addEventListener('click', enableReminder);
 document.getElementById('reminderOffBtn').addEventListener('click', disableReminder);
+document.getElementById('themeLightBtn').addEventListener('click', () => setTheme('light'));
+document.getElementById('themeDarkBtn').addEventListener('click', () => setTheme('dark'));
+document.getElementById('modeExerciseBtn').addEventListener('click', () => setMode('exercise'));
+document.getElementById('modeChatBtn').addEventListener('click', () => setMode('chat'));
+document.getElementById('shareBtn').addEventListener('click', handleShare);
 document.getElementById('exportBtn').addEventListener('click', handleExport);
 document.getElementById('importBtn').addEventListener('click', handleImportClick);
 document.getElementById('importFile').addEventListener('change', handleImportFile);
