@@ -9,7 +9,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Ronin&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Yuji+Boku&display=swap" rel="stylesheet">
 <style>
   :root{
     --paper:#F3EFE3;
@@ -20,11 +20,13 @@
     --red:#AE3B2E;
     --red-soft:#C7594A;
     --moss:#4B5A3A;
-    --gold:#9C7F3F;
+    --gold:#DAA520;
     --error:#8C3B2A;
     --teal:#2E6E63;
     --indigo:#48507E;
     --maroon:#7A2438;
+    --blue:#2F7FC1;
+    --blue-soft:#5B9BD3;
   }
   [data-theme="dark"]{
     --paper:#1E1B18;
@@ -35,11 +37,13 @@
     --red:#D2564A;
     --red-soft:#E07A6E;
     --moss:#7FA066;
-    --gold:#D4B36A;
+    --gold:#E8BC3F;
     --error:#E2695C;
     --teal:#5CB3A1;
     --indigo:#8890C4;
     --maroon:#C9677E;
+    --blue:#5B9BD3;
+    --blue-soft:#7FB0E0;
   }
   body{transition:background-color .3s ease, color .3s ease;}
   *{box-sizing:border-box;}
@@ -48,14 +52,34 @@
     background: var(--paper);
     background-attachment: fixed;
     color:var(--ink);
-    font-family: Georgia, 'Times New Roman', serif;
+    font-family: 'Yuji Boku', 'Shippori Mincho', Georgia, serif;
+    font-weight:bold;
+    font-style:italic;
     min-height:100vh;
     padding:24px 16px 60px;
     -webkit-tap-highlight-color: transparent;
   }
   .wrap{max-width:640px;margin:0 auto;}
 
-  header{text-align:center;margin-bottom:18px;position:relative;}
+  header{
+    text-align:center;margin-bottom:18px;position:relative;
+    padding-top:14px; padding-bottom:6px;
+  }
+  header::before{
+    content:'';
+    position:absolute; top:0; left:-16px; right:-16px; height:120px;
+    background-image:
+      radial-gradient(circle at 50% 0%, transparent 17px, var(--gold) 18px, var(--gold) 19px, transparent 20px),
+      radial-gradient(circle at 50% 0%, transparent 17px, var(--blue) 18px, var(--blue) 19px, transparent 20px);
+    background-position: 0 0, 18px 18px;
+    background-size: 36px 36px;
+    opacity:0.24;
+    -webkit-mask-image: linear-gradient(to bottom, black 0%, black 55%, transparent 100%);
+    mask-image: linear-gradient(to bottom, black 0%, black 55%, transparent 100%);
+    pointer-events:none;
+    z-index:0;
+  }
+  header > *{ position:relative; z-index:1; }
   .menu-btn{
     position:absolute; top:0; left:0;
     background:var(--paper-2); border:1px solid var(--grid); border-radius:12px;
@@ -63,28 +87,38 @@
     font-size:16px; color:var(--ink); cursor:pointer;
     display:flex; align-items:center; justify-content:center;
     transition:background .15s ease;
+    font-style:normal; font-family:Arial, sans-serif;
   }
-  .menu-btn:hover{background:var(--red); color:var(--paper); border-color:var(--red);}
+  .menu-btn:hover{background:var(--blue); color:var(--paper); border-color:var(--blue);}
 
   .kanji-mark{
     font-size:17px;letter-spacing:0.4em;color:var(--gold);
-    text-transform:uppercase;font-family:'Ronin', 'Shippori Mincho', Georgia, serif;
+    text-transform:uppercase;font-family:'Yuji Boku', 'Shippori Mincho', Georgia, serif;
+    font-weight:bold;font-style:italic;
   }
-  h1{font-size:36px;margin:6px 0 2px;font-weight:700;letter-spacing:0.03em;font-family:'Ronin', 'Shippori Mincho', Georgia, serif;}
+  h1{
+    font-size:36px;margin:6px 0 2px;font-weight:700;font-style:italic;letter-spacing:0.03em;
+    font-family:'Yuji Boku', 'Shippori Mincho', Georgia, serif;
+    color:var(--ink); /* fallback se il browser non supporta la sfumatura sul testo */
+    background:linear-gradient(100deg, var(--ink) 15%, var(--blue) 55%, #FFFFFF 90%);
+    -webkit-background-clip:text; background-clip:text;
+    -webkit-text-fill-color:transparent;
+    text-shadow:0 1px 0 rgba(0,0,0,0.08); /* piccolo contorno per leggibilita' sulla parte chiara */
+  }
   h1 .accent{color:var(--red);}
-  .subtitle{font-size:13px;color:var(--ink-soft);font-family:'Courier New', monospace;letter-spacing:0.05em;}
+  .subtitle{font-size:13px;color:var(--ink-soft);font-family:'Yuji Boku', 'Courier New', monospace;letter-spacing:0.05em;}
 
   .level-bar-wrap{max-width:400px;margin:14px auto 0;}
   .level-bar-track{height:6px; background:var(--grid); border-radius:3px; overflow:hidden;}
-  .level-bar-fill{height:100%; background:linear-gradient(90deg, var(--gold), var(--red)); border-radius:3px; transition:width .6s ease;}
-  .level-bar-label{font-family:'Courier New', monospace; font-size:10px; color:var(--ink-soft); text-align:center; margin-top:5px; letter-spacing:0.05em;}
+  .level-bar-fill{height:100%; background:linear-gradient(90deg, var(--blue), var(--gold)); border-radius:3px; transition:width .6s ease;}
+  .level-bar-label{font-family:'Yuji Boku', 'Courier New', monospace; font-size:10px; color:var(--ink-soft); text-align:center; margin-top:5px; letter-spacing:0.05em;}
 
   .stats-row{display:flex;gap:8px;justify-content:center;margin:16px 0 8px;flex-wrap:wrap;}
   .stat{
-    border-radius:12px;padding:8px 14px;font-family:'Courier New', monospace;font-size:11px;
+    border-radius:12px;padding:8px 14px;font-family:'Yuji Boku', 'Courier New', monospace;font-size:11px;
     text-align:center;min-width:80px;border:1px solid transparent;
   }
-  .stat b{display:block;font-size:19px;font-family:Georgia,serif;margin-bottom:1px;}
+  .stat b{display:block;font-size:19px;font-family:'Yuji Boku', Georgia, serif;font-weight:bold;font-style:italic;margin-bottom:1px;}
   .stat.c-gold{background:#F1E6C9;border-color:#D9C387;color:#8A6D2E;}
   .stat.c-gold b{color:#8A6D2E;}
   .stat.c-red{background:#F5DAD5;border-color:#E0AFA5;color:var(--red);}
@@ -107,7 +141,7 @@
     position:relative;width:80px;height:80px;border-radius:50%;
     border:3px solid var(--red);color:var(--red);
     display:flex;align-items:center;justify-content:center;flex-direction:column;
-    font-family:'Courier New', monospace;font-size:11px;margin:0 auto 8px;
+    font-family:'Yuji Boku', 'Courier New', monospace;font-size:11px;margin:0 auto 8px;
     transform:rotate(-8deg) scale(0);opacity:0;
     transition:opacity .3s ease, transform .3s cubic-bezier(.34,1.56,.64,1);
   }
@@ -115,18 +149,19 @@
   .stamp b{font-size:26px;font-family:Georgia,serif;}
 
   .card{background:var(--paper-2);border:1px solid var(--grid);border-radius:14px;border-left:4px solid var(--red);padding:22px 20px;margin-bottom:16px;animation:cardIn .35s ease;}
+  #pathCard, #calendarCard{border-left-color:var(--blue);}
   @keyframes cardIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
-  .card .eyebrow{font-family:'Ronin', 'Courier New', monospace;font-size:13px;letter-spacing:0.06em;color:var(--ink-soft);margin-bottom:8px;}
+  .card .eyebrow{font-family:'Yuji Boku', 'Courier New', monospace;font-size:13px;font-weight:bold;font-style:italic;letter-spacing:0.06em;color:var(--ink-soft);margin-bottom:8px;}
   .task-it{font-size:19px;line-height:1.5;}
   .hint{margin-top:10px;font-size:13px;color:var(--ink-soft);font-style:italic;}
 
   .feedback{padding:16px 18px;margin-bottom:16px;border-radius:14px;font-size:14.5px;line-height:1.55;border-left:4px solid var(--moss);background:#EEEADB;animation:cardIn .3s ease;}
   .feedback.wrong{border-left-color:var(--error);}
-  .feedback .verdict{font-family:'Courier New', monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;color:var(--moss);}
+  .feedback .verdict{font-family:'Yuji Boku', 'Courier New', monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;color:var(--moss);}
   .feedback.wrong .verdict{color:var(--error);}
   .speak-btn{
     background:none;border:1px solid currentColor;border-radius:16px;
-    padding:3px 12px;font-size:11px;font-family:'Courier New', monospace;
+    padding:3px 12px;font-size:11px;font-family:'Yuji Boku', 'Courier New', monospace;
     color:inherit;cursor:pointer;flex:none;transition:background .15s ease;
   }
   .speak-btn:hover{background:rgba(0,0,0,0.06);}
@@ -142,7 +177,7 @@
   .answer-zone{margin-bottom:14px;}
   textarea, input[type=password]{
     width:100%;background:var(--paper);border:1px solid var(--grid);border-radius:12px;padding:14px;
-    font-family:'Courier New', monospace;font-size:16px;color:var(--ink);resize:none;min-height:60px;
+    font-family:'Yuji Boku', 'Courier New', monospace;font-size:16px;color:var(--ink);resize:none;min-height:60px;
     transition:border-color .2s ease, box-shadow .2s ease;
   }
   input[type=password]{min-height:auto;}
@@ -150,12 +185,12 @@
 
   .actions{display:flex;gap:10px;margin-top:10px;}
   button{
-    font-family:'Courier New', monospace;font-size:13px;letter-spacing:0.05em;text-transform:uppercase;
+    font-family:'Yuji Boku', 'Courier New', monospace;font-size:13px;font-weight:bold;font-style:italic;letter-spacing:0.05em;text-transform:uppercase;
     border-radius:12px;
-    padding:13px 18px;border:1px solid var(--ink);background:var(--ink);color:var(--paper);cursor:pointer;flex:1;
+    padding:13px 18px;border:1px solid var(--blue);background:var(--blue);color:var(--paper);cursor:pointer;flex:1;
     transition:background .15s ease, transform .1s ease, box-shadow .15s ease;
   }
-  button:hover:not(:disabled){background:var(--red);border-color:var(--red);box-shadow:0 3px 10px rgba(174,59,46,0.25);}
+  button:hover:not(:disabled){background:var(--gold);border-color:var(--gold);color:var(--ink);box-shadow:0 3px 10px rgba(218,165,32,0.3);}
   button:active:not(:disabled){transform:scale(0.97);}
   button:disabled{opacity:0.4;cursor:not-allowed;}
   button.secondary{background:transparent;color:var(--ink-soft);border-color:var(--grid);flex:0 0 auto;box-shadow:none;}
@@ -167,21 +202,21 @@
     background:#F6F1E4; border:1px dashed var(--gold); border-radius:12px; padding:14px 16px; margin-bottom:16px;
     font-size:13px; color:var(--ink-soft);
   }
-  .suggest-panel .label{font-family:'Courier New', monospace;font-size:11px;color:var(--gold);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px;}
-  .suggest-word{display:inline-block;background:var(--paper);border:1px solid var(--grid);border-radius:8px;padding:3px 10px;margin:2px 4px 2px 0;font-family:'Courier New', monospace;font-size:12.5px;color:var(--ink);}
+  .suggest-panel .label{font-family:'Yuji Boku', 'Courier New', monospace;font-size:11px;color:var(--gold);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px;}
+  .suggest-word{display:inline-block;background:var(--paper);border:1px solid var(--grid);border-radius:8px;padding:3px 10px;margin:2px 4px 2px 0;font-family:'Yuji Boku', 'Courier New', monospace;font-size:12.5px;color:var(--ink);}
 
-  .loading{text-align:center;padding:30px 0;color:var(--ink-soft);font-family:'Courier New', monospace;font-size:13px;}
+  .loading{text-align:center;padding:30px 0;color:var(--ink-soft);font-family:'Yuji Boku', 'Courier New', monospace;font-size:13px;}
   .dot{animation:blink 1.4s infinite;}
   .dot:nth-child(2){animation-delay:.2s;}
   .dot:nth-child(3){animation-delay:.4s;}
   @keyframes blink{0%,80%,100%{opacity:0.2;}40%{opacity:1;}}
 
-  .err-box{background:#F6E3DE;border:1px solid var(--error);border-radius:12px;color:var(--error);padding:12px 14px;font-size:13px;margin-bottom:14px;font-family:'Courier New', monospace;}
+  .err-box{background:#F6E3DE;border:1px solid var(--error);border-radius:12px;color:var(--error);padding:12px 14px;font-size:13px;margin-bottom:14px;font-family:'Yuji Boku', 'Courier New', monospace;}
 
   .setup-card{background:var(--paper-2);border:1px solid var(--grid);border-radius:14px;border-left:4px solid var(--gold);padding:22px 20px;margin-bottom:16px;}
   .setup-card p{font-size:14px;line-height:1.6;margin:0 0 12px;}
-  .setup-card a{color:var(--red);}
-  .setup-card label{display:block;font-family:'Courier New', monospace;font-size:11px;letter-spacing:0.05em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:6px;}
+  .setup-card a{color:var(--blue);}
+  .setup-card label{display:block;font-family:'Yuji Boku', 'Courier New', monospace;font-size:11px;letter-spacing:0.05em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:6px;}
 
   /* ===== MENU LATERALE ===== */
   .overlay{
@@ -204,8 +239,8 @@
   }
   .menu-section:first-of-type{margin-top:36px;}
   .side-menu h3{
-    font-family:'Ronin', 'Courier New', monospace; font-size:14px; letter-spacing:0.04em;
-    color:var(--ink-soft); margin:0 0 10px; font-weight:normal;
+    font-family:'Yuji Boku', 'Courier New', monospace; font-size:14px; letter-spacing:0.04em;
+    color:var(--ink-soft); margin:0 0 10px; font-weight:bold; font-style:italic;
   }
   .menu-close{
     background:none; border:none; font-size:20px; color:var(--ink-soft); cursor:pointer;
@@ -213,13 +248,13 @@
   }
   .menu-row{display:flex; gap:8px; margin-bottom:2px;}
   .menu-row button{border-radius:10px; padding:10px 12px; font-size:12px;}
-  .menu-row button.active-choice{background:var(--red); color:var(--paper); border-color:var(--red);}
-  .menu-row button.secondary.active-choice{background:var(--red); color:var(--paper);}
+  .menu-row button.active-choice{background:var(--blue); color:var(--paper); border-color:var(--blue);}
+  .menu-row button.secondary.active-choice{background:var(--blue); color:var(--paper);}
 
   .menu-search{
     width:100%;margin-bottom:12px;padding:9px 12px;border-radius:10px;
     border:1px solid var(--grid);background:var(--paper);
-    font-family:'Courier New', monospace;font-size:13px;color:var(--ink);
+    font-family:'Yuji Boku', 'Courier New', monospace;font-size:13px;color:var(--ink);
   }
   .search-results{
     background:var(--paper); border:1px dashed var(--gold); border-radius:10px;
@@ -230,7 +265,7 @@
 
   .vocab-cols-menu .vocab-col{margin-bottom:14px;}
   .vocab-cols-menu .vocab-col:last-child{margin-bottom:0;}
-  .vocab-col .label{font-size:11px;font-family:'Courier New', monospace;color:var(--red);margin-bottom:6px;letter-spacing:0.05em;}
+  .vocab-col .label{font-size:11px;font-family:'Yuji Boku', 'Courier New', monospace;color:var(--blue);margin-bottom:6px;letter-spacing:0.05em;}
   .label.collapsible{cursor:pointer; user-select:none; display:flex; align-items:center; gap:4px;}
   .collapse-arrow{display:inline-block; transition:transform .2s ease; font-size:10px;}
   .collapse-arrow.collapsed{transform:rotate(-90deg);}
@@ -242,30 +277,30 @@
   }
   .vocab-tags.scrollable::-webkit-scrollbar{width:5px;}
   .vocab-tags.scrollable::-webkit-scrollbar-thumb{background:var(--grid);border-radius:3px;}
-  .vocab-count{font-size:10px;color:var(--ink-soft);font-family:'Courier New', monospace;margin-left:4px;opacity:0.7;}
-  .tag{background:var(--paper);border:1px solid var(--grid);border-radius:8px;padding:3px 9px;font-size:12px;font-family:'Courier New', monospace;color:var(--ink-soft);}
+  .vocab-count{font-size:10px;color:var(--ink-soft);font-family:'Yuji Boku', 'Courier New', monospace;margin-left:4px;opacity:0.7;}
+  .tag{background:var(--paper);border:1px solid var(--grid);border-radius:8px;padding:3px 9px;font-size:12px;font-family:'Yuji Boku', 'Courier New', monospace;color:var(--ink-soft);}
   .tag.active{color:var(--moss);border-color:var(--moss);}
 
   .menu-footer-btn{width:100%; margin-top:8px;}
 
   .calendar-grid{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;margin-top:6px;}
   .calendar-day{aspect-ratio:1;border-radius:4px;background:var(--grid);}
-  .calendar-day.active{background:var(--red);}
-  .calendar-caption{font-size:10px;color:var(--ink-soft);font-family:'Courier New', monospace;margin-top:6px;text-align:center;}
+  .calendar-day.active{background:var(--blue);}
+  .calendar-caption{font-size:10px;color:var(--ink-soft);font-family:'Yuji Boku', 'Courier New', monospace;margin-top:6px;text-align:center;}
 
   .progress-path{display:flex;align-items:center;overflow-x:auto;padding:6px 2px;gap:0;}
   .path-node-wrap{display:flex;align-items:center;flex:none;}
   .path-node{
     width:30px;height:30px;border-radius:50%;flex:none;
     display:flex;align-items:center;justify-content:center;
-    font-family:'Courier New', monospace;font-size:11px;font-weight:bold;
+    font-family:'Yuji Boku', 'Courier New', monospace;font-size:11px;font-weight:bold;
     background:var(--grid);color:var(--ink-soft);border:2px solid var(--grid);
     transition:background .3s ease, border-color .3s ease, transform .2s ease;
   }
-  .path-node.done{background:var(--red);border-color:var(--red);color:var(--paper);}
+  .path-node.done{background:var(--blue);border-color:var(--blue);color:var(--paper);}
   .path-node.current{background:var(--paper);border-color:var(--gold);color:var(--gold);transform:scale(1.15);}
   .path-connector{width:16px;height:2px;background:var(--grid);flex:none;}
-  .path-connector.done{background:var(--red);}
+  .path-connector.done{background:var(--blue);}
 
   .history-list{max-height:220px; overflow-y:auto;}
   .history-item{
@@ -276,7 +311,7 @@
   .history-icon{flex:none; font-size:14px; margin-top:1px;}
   .history-body{flex:1; min-width:0;}
   .history-task{color:var(--ink-soft); font-size:11px; margin-bottom:2px;}
-  .history-answer{color:var(--ink); font-family:'Courier New', monospace; word-break:break-word;}
+  .history-answer{color:var(--ink); font-family:'Yuji Boku', 'Courier New', monospace; word-break:break-word;}
   .history-empty{color:var(--ink-soft); font-size:12px; text-align:center; padding:10px 0;}
   .weekly-goal-wrap{margin-top:12px;}
   .level-bar-fill.weekly{background:linear-gradient(90deg, var(--teal), var(--moss));}
@@ -286,7 +321,7 @@
     flex:none; background:var(--paper-2); border:1px solid var(--grid); color:var(--ink-soft);
     border-radius:20px; padding:7px 16px; font-size:11px;
   }
-  .mode-btn.active-choice{background:var(--indigo); border-color:var(--indigo); color:var(--paper);}
+  .mode-btn.active-choice{background:var(--blue); border-color:var(--blue); color:var(--paper);}
 
   .chat-wrap{display:flex; flex-direction:column; gap:10px; margin-bottom:14px;}
   .chat-bubble{
@@ -296,7 +331,7 @@
   .chat-bubble.user{align-self:flex-end; background:var(--indigo); color:var(--paper); border-bottom-right-radius:4px;}
   .chat-bubble.ai{align-self:flex-start; background:var(--paper-2); border:1px solid var(--grid); border-bottom-left-radius:4px;}
   .chat-bubble .chat-jp{font-size:15px; margin-bottom:2px;}
-  .chat-bubble .chat-romaji{font-family:'Courier New', monospace; font-size:12px; opacity:0.85;}
+  .chat-bubble .chat-romaji{font-family:'Yuji Boku', 'Courier New', monospace; font-size:12px; opacity:0.85;}
   .chat-bubble .chat-note{margin-top:6px; font-size:12px; font-style:italic; opacity:0.85; border-top:1px dashed currentColor; padding-top:6px;}
   .chat-bubble .chat-speak{margin-top:6px;}
   .chat-empty{text-align:center; color:var(--ink-soft); font-size:13px; padding:30px 10px;}
@@ -308,7 +343,7 @@
   .toast{
     position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
     background:var(--ink); color:var(--paper); padding:10px 18px; border-radius:20px;
-    font-family:'Courier New', monospace; font-size:12px; z-index:60;
+    font-family:'Yuji Boku', 'Courier New', monospace; font-size:12px; z-index:60;
     opacity:0; pointer-events:none; transition:opacity .3s ease, transform .3s ease;
   }
   .toast.show{opacity:1; transform:translateX(-50%) translateY(-6px);}
@@ -316,6 +351,22 @@
   .reminder-note{font-size:11px;color:var(--ink-soft);line-height:1.5;margin-top:6px;}
 
   footer{display:none;}
+
+  /* ===== ECCEZIONE: contenuto di apprendimento resta leggibile =====
+     Frase esercizio, correzioni, vocabolario, chat, cronologia e campi
+     di digitazione usano uno stile giapponese più sobrio (Shippori Mincho),
+     non il pennello grassetto/corsivo usato per il resto dell'interfaccia. */
+  .task-it, .hint, .feedback, .jp-answer,
+  .tag, .suggest-word,
+  .chat-bubble .chat-jp, .chat-bubble .chat-romaji, .chat-bubble .chat-note,
+  .history-task, .history-answer,
+  textarea, input[type="text"], input[type="password"] {
+    font-family:'Shippori Mincho', Georgia, serif;
+    font-weight:400;
+    font-style:normal;
+  }
+  .hint, .chat-bubble .chat-note{ font-style:italic; } /* enfasi originale mantenuta */
+  .no-italic{font-style:normal !important; font-weight:normal !important; display:inline-block;}
 </style>
 </head>
 <body>
@@ -334,16 +385,16 @@
   <div class="menu-section">
     <h3 id="menuSoundTitle">🔊 Suoni</h3>
     <div class="menu-row">
-      <button class="secondary" id="menuSoundOn">🔊 ON</button>
-      <button class="secondary" id="menuSoundOff">🔇 OFF</button>
+      <button class="secondary" id="menuSoundOn"><span class="no-italic">🔊</span> ON</button>
+      <button class="secondary" id="menuSoundOff"><span class="no-italic">🔇</span> OFF</button>
     </div>
   </div>
 
   <div class="menu-section">
     <h3 id="menuThemeTitle">🎨 Tema</h3>
     <div class="menu-row">
-      <button class="secondary" id="themeLightBtn">☀️ chiaro</button>
-      <button class="secondary" id="themeDarkBtn">🌙 scuro</button>
+      <button class="secondary" id="themeLightBtn"><span class="no-italic">☀️</span> chiaro</button>
+      <button class="secondary" id="themeDarkBtn"><span class="no-italic">🌙</span> scuro</button>
     </div>
   </div>
 
@@ -704,16 +755,16 @@ function setLang(lang){
 }
 function applyStaticTexts(){
   document.getElementById('subtitleText').innerHTML = t('subtitle');
-  document.getElementById('menuLangTitle').textContent = t('menuLangTitle');
-  document.getElementById('menuSoundTitle').textContent = t('menuSoundTitle');
-  document.getElementById('menuVocabTitle').textContent = t('menuVocabTitle');
-  document.getElementById('menuAccountTitle').textContent = t('menuAccountTitle');
-  document.getElementById('menuThemeTitle').textContent = t('menuThemeTitle');
-  document.getElementById('menuHistoryTitle').textContent = t('menuHistoryTitle');
-  document.getElementById('shareBtn').textContent = t('shareBtn');
-  document.getElementById('modeExerciseBtn').textContent = t('modeExerciseBtn');
-  document.getElementById('modeChatBtn').textContent = t('modeChatBtn');
-  document.getElementById('menuReminderTitle').textContent = t('menuReminderTitle');
+  document.getElementById('menuLangTitle').innerHTML = wrapIcons(t('menuLangTitle'));
+  document.getElementById('menuSoundTitle').innerHTML = wrapIcons(t('menuSoundTitle'));
+  document.getElementById('menuVocabTitle').innerHTML = wrapIcons(t('menuVocabTitle'));
+  document.getElementById('menuAccountTitle').innerHTML = wrapIcons(t('menuAccountTitle'));
+  document.getElementById('menuThemeTitle').innerHTML = wrapIcons(t('menuThemeTitle'));
+  document.getElementById('menuHistoryTitle').innerHTML = wrapIcons(t('menuHistoryTitle'));
+  document.getElementById('shareBtn').innerHTML = wrapIcons(t('shareBtn'));
+  document.getElementById('modeExerciseBtn').innerHTML = wrapIcons(t('modeExerciseBtn'));
+  document.getElementById('modeChatBtn').innerHTML = wrapIcons(t('modeChatBtn'));
+  document.getElementById('menuReminderTitle').innerHTML = wrapIcons(t('menuReminderTitle'));
   document.getElementById('labelActive').innerHTML = `<span class="collapse-arrow" id="arrowActive">▾</span> ${t('labelActive')}<span class="vocab-count" id="activeCount"></span>`;
   document.getElementById('labelLearning').innerHTML = `<span class="collapse-arrow" id="arrowLearning">▾</span> ${t('labelLearning')}`;
   document.getElementById('resetBtn').textContent = t('resetBtn');
@@ -721,11 +772,11 @@ function applyStaticTexts(){
   document.getElementById('vocabSearch').placeholder = t('vocabSearchPlaceholder');
   document.getElementById('calendarTitle').textContent = t('calendarTitle');
   document.getElementById('pathTitle').textContent = t('pathTitle');
-  document.getElementById('reminderOnBtn').textContent = t('reminderOn');
-  document.getElementById('reminderOffBtn').textContent = t('reminderOff');
+  document.getElementById('reminderOnBtn').innerHTML = wrapIcons(t('reminderOn'));
+  document.getElementById('reminderOffBtn').innerHTML = wrapIcons(t('reminderOff'));
   document.getElementById('reminderNote').textContent = t('reminderNote');
-  document.getElementById('exportBtn').textContent = t('exportBtn');
-  document.getElementById('importBtn').textContent = t('importBtn');
+  document.getElementById('exportBtn').innerHTML = wrapIcons(t('exportBtn'));
+  document.getElementById('importBtn').innerHTML = wrapIcons(t('importBtn'));
 }
 function renderMenuChoices(){
   document.getElementById('menuLangIt').classList.toggle('active-choice', uiLang === 'it');
@@ -1402,7 +1453,7 @@ function render(){
     html += `<div class="feedback ${state.pendingCorrect ? '' : 'wrong'}">
       <span class="verdict">
         <span>${state.pendingCorrect ? t('corretto') : t('daCorreggere')}</span>
-        ${state.pendingJpAnswer ? `<button class="speak-btn" id="speakBtn">${t('ascolta')}</button>` : ''}
+        ${state.pendingJpAnswer ? `<button class="speak-btn" id="speakBtn">${wrapIcons(t('ascolta'))}</button>` : ''}
       </span>
       ${escapeHtml(state.pendingFeedback)}
       ${state.pendingJpAnswer ? `<div class="jp-answer">${escapeHtml(state.pendingJpAnswer)}</div>` : ''}
@@ -1415,7 +1466,7 @@ function render(){
   } else if(state.currentExercise){
     const suggested = pickSuggestedWords();
     if(state.learningVocab && state.learningVocab.length){
-      html += `<div class="review-btn-wrap"><button class="review-btn" id="reviewBtn">${t('ripassaBtn')}</button></div>`;
+      html += `<div class="review-btn-wrap"><button class="review-btn" id="reviewBtn">${wrapIcons(t('ripassaBtn'))}</button></div>`;
     }
     if(suggested.length){
       html += `<div class="suggest-panel">
@@ -1432,7 +1483,7 @@ function render(){
     ${renderPronResult()}
     <div class="actions">
       <button id="submitBtn">${t('correggi')}</button>
-      <button class="mic-btn ${isRecording ? 'recording' : ''}" id="micBtn" title="${t('micLabel')}">${isRecording ? '🎤...' : '🎤'}</button>
+      <button class="mic-btn ${isRecording ? 'recording' : ''}" id="micBtn" title="${t('micLabel')}">${isRecording ? '<span class="no-italic">🎤...</span>' : '<span class="no-italic">🎤</span>'}</button>
     </div>`;
   }
 
@@ -1493,7 +1544,7 @@ function renderChatUI(){
   html += `<div class="answer-zone"><textarea id="chatInput" placeholder="${t('chatPlaceholder')}"></textarea></div>
   <div class="actions">
     <button id="chatSendBtn" ${chatLoading ? 'disabled' : ''}>${t('invia')}</button>
-    <button class="mic-btn ${isRecording ? 'recording' : ''}" id="chatMicBtn" title="${t('micLabel')}">${isRecording ? '🎤...' : '🎤'}</button>
+    <button class="mic-btn ${isRecording ? 'recording' : ''}" id="chatMicBtn" title="${t('micLabel')}">${isRecording ? '<span class="no-italic">🎤...</span>' : '<span class="no-italic">🎤</span>'}</button>
   </div>`;
 
   app.innerHTML = html;
@@ -1533,7 +1584,7 @@ function renderHistory(){
   }
   list.innerHTML = state.history.map(h => `
     <div class="history-item">
-      <span class="history-icon">${h.correct ? '✅' : '❌'}</span>
+      <span class="history-icon no-italic">${h.correct ? '✅' : '❌'}</span>
       <div class="history-body">
         <div class="history-task">${escapeHtml(h.task || '')}</div>
         <div class="history-answer">${escapeHtml(h.answer || '')}</div>
@@ -1615,6 +1666,13 @@ function renderPronResult(){
     return `<div class="pron-result match">✓ ${t('pronMatch')} <em>"${escapeHtml(pronResult.heard)}"</em></div>`;
   }
   return `<div class="pron-result nomatch">${t('pronOff')} <em>"${escapeHtml(pronResult.heard)}"</em></div>`;
+}
+
+// Isola ogni emoji in un contenitore che ignora il grassetto/corsivo del
+// testo circostante (alcuni browser Android inclinano anche i glifi emoji).
+function wrapIcons(str){
+  if(!str) return str;
+  return str.replace(/([\u{2190}-\u{21FF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{1F000}-\u{1FAFF}])(\u{FE0F})?/gu, '<span class="no-italic">$1$2</span>');
 }
 
 function escapeHtml(str){
