@@ -202,6 +202,12 @@
     border:1px solid var(--grid);background:var(--paper);
     font-family:'Courier New', monospace;font-size:13px;color:var(--ink);
   }
+  .search-results{
+    background:var(--paper); border:1px dashed var(--gold); border-radius:10px;
+    padding:10px 12px; margin-bottom:14px;
+  }
+  .search-results .label{color:var(--gold); margin-bottom:6px;}
+  .search-results .vocab-tags{max-height:none;}
 
   .vocab-cols-menu .vocab-col{margin-bottom:14px;}
   .vocab-cols-menu .vocab-col:last-child{margin-bottom:0;}
@@ -269,6 +275,10 @@
   <div class="menu-section">
     <h3 id="menuVocabTitle">📚 Vocabolario</h3>
     <input type="text" id="vocabSearch" class="menu-search">
+    <div class="search-results" id="searchResults" style="display:none;">
+      <div class="label" id="searchResultsLabel"></div>
+      <div class="vocab-tags" id="searchResultsTags"></div>
+    </div>
     <div class="vocab-cols-menu">
       <div class="vocab-col">
         <div class="label collapsible" id="labelActive" data-target="activeTags">
@@ -364,6 +374,7 @@ const UI_TEXT = {
     pronClose: "Ci sei quasi — hai detto:",
     pronOff: "Non corrisponde bene — hai detto:",
     vocabSearchPlaceholder: "🔍 cerca...",
+    risultatiTrovati: "risultati trovati", nessunRisultato: "nessun risultato",
     calendarTitle: "Costanza", giorniAttivi: "giorni attivi (ultimi 30)",
     ripassaBtn: "🔁 ripassa parole deboli", ripassaVuoto: "Nessuna parola da ripassare ancora — continua così!",
     exportBtn: "⬇️ esporta progresso", importBtn: "⬆️ importa progresso",
@@ -402,6 +413,7 @@ const UI_TEXT = {
     pronClose: "Close — I heard:",
     pronOff: "Doesn't quite match — I heard:",
     vocabSearchPlaceholder: "🔍 search...",
+    risultatiTrovati: "results found", nessunRisultato: "no results",
     calendarTitle: "Consistency", giorniAttivi: "active days (last 30)",
     ripassaBtn: "🔁 review weak words", ripassaVuoto: "No words to review yet — keep going!",
     exportBtn: "⬇️ export progress", importBtn: "⬆️ import progress",
@@ -471,6 +483,7 @@ let recognition = null;
 let isRecording = false;
 let pronResult = null; // { matched: bool, heard: string }
 let vocabSearchTerm = '';
+let vocabCollapsedState = { activeTags: false, learningTags: false }; // preferenza manuale dell'utente
 
 function getAudioCtx(){
   if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1099,12 +1112,53 @@ function renderVocabTags(){
   const activeTags = document.getElementById('activeTags');
   const learningTags = document.getElementById('learningTags');
   const activeCount = document.getElementById('activeCount');
+  const searchResults = document.getElementById('searchResults');
+  const searchResultsTags = document.getElementById('searchResultsTags');
+  const searchResultsLabel = document.getElementById('searchResultsLabel');
   if(!state || !activeTags || !learningTags) return;
-  activeTags.innerHTML = filterVocab(state.activeVocab).map(v => `<span class="tag active">${escapeHtml(v)}</span>`).join('') || '<span class="tag">—</span>';
-  learningTags.innerHTML = filterVocab(state.learningVocab).length
-    ? filterVocab(state.learningVocab).map(v => `<span class="tag">${escapeHtml(v)}</span>`).join('')
+
+  // Le due sezioni mostrano SEMPRE la lista completa, non filtrata:
+  // il loro stato aperto/chiuso dipende solo dal click dell'utente, mai dalla ricerca.
+  activeTags.innerHTML = state.activeVocab.map(v => `<span class="tag active">${escapeHtml(v)}</span>`).join('') || '<span class="tag">—</span>';
+  learningTags.innerHTML = state.learningVocab.length
+    ? state.learningVocab.map(v => `<span class="tag">${escapeHtml(v)}</span>`).join('')
     : '<span class="tag">—</span>';
   if(activeCount) activeCount.textContent = ` (${state.activeVocab.length})`;
+  applyVocabCollapseVisual();
+
+  // La ricerca vive per conto suo, in un riquadro separato, senza toccare le sezioni sopra.
+  if(searchResults && searchResultsTags && searchResultsLabel){
+    const term = vocabSearchTerm.trim();
+    if(!term){
+      searchResults.style.display = 'none';
+    } else {
+      searchResults.style.display = 'block';
+      const activeMatches = filterVocab(state.activeVocab);
+      const learningMatches = filterVocab(state.learningVocab);
+      const allMatches = [
+        ...activeMatches.map(v => ({ v, active: true })),
+        ...learningMatches.map(v => ({ v, active: false }))
+      ];
+      searchResultsLabel.textContent = `🔍 ${allMatches.length} ${t('risultatiTrovati')}`;
+      searchResultsTags.innerHTML = allMatches.length
+        ? allMatches.map(({v, active}) => `<span class="tag ${active ? 'active' : ''}">${escapeHtml(v)}</span>`).join('')
+        : `<span class="tag">${t('nessunRisultato')}</span>`;
+    }
+  }
+}
+
+// Le sezioni "attivo"/"in apprendimento" restano aperte o chiuse solo in base
+// alla preferenza manuale dell'utente — la ricerca non le tocca mai.
+function applyVocabCollapseVisual(){
+  ['activeTags', 'learningTags'].forEach(targetId => {
+    const target = document.getElementById(targetId);
+    const arrowId = targetId === 'activeTags' ? 'arrowActive' : 'arrowLearning';
+    const arrow = document.getElementById(arrowId);
+    if(!target) return;
+    const shouldCollapse = vocabCollapsedState[targetId];
+    target.classList.toggle('collapsed', shouldCollapse);
+    if(arrow) arrow.classList.toggle('collapsed', shouldCollapse);
+  });
 }
 
 // Cerca un termine sia nella parte giapponese/romaji sia nella traduzione,
@@ -1156,10 +1210,8 @@ document.getElementById('vocabSearch').addEventListener('input', (e) => {
 document.querySelectorAll('.label.collapsible').forEach(label => {
   label.addEventListener('click', () => {
     const targetId = label.getAttribute('data-target');
-    const target = document.getElementById(targetId);
-    const arrow = label.querySelector('.collapse-arrow');
-    target.classList.toggle('collapsed');
-    arrow.classList.toggle('collapsed');
+    vocabCollapsedState[targetId] = !vocabCollapsedState[targetId];
+    applyVocabCollapseVisual();
   });
 });
 
