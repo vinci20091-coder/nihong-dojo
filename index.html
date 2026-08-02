@@ -206,6 +206,10 @@
   .vocab-cols-menu .vocab-col{margin-bottom:14px;}
   .vocab-cols-menu .vocab-col:last-child{margin-bottom:0;}
   .vocab-col .label{font-size:11px;font-family:'Courier New', monospace;color:var(--red);margin-bottom:6px;letter-spacing:0.05em;}
+  .label.collapsible{cursor:pointer; user-select:none; display:flex; align-items:center; gap:4px;}
+  .collapse-arrow{display:inline-block; transition:transform .2s ease; font-size:10px;}
+  .collapse-arrow.collapsed{transform:rotate(-90deg);}
+  .vocab-tags.collapsed{display:none;}
   .vocab-tags{display:flex;flex-wrap:wrap;gap:6px;}
   .vocab-tags.scrollable{
     max-height:150px; overflow-y:auto; padding-right:4px;
@@ -266,8 +270,18 @@
     <h3 id="menuVocabTitle">📚 Vocabolario</h3>
     <input type="text" id="vocabSearch" class="menu-search">
     <div class="vocab-cols-menu">
-      <div class="vocab-col"><div class="label" id="labelActive">attivo<span class="vocab-count" id="activeCount"></span></div><div class="vocab-tags scrollable" id="activeTags"></div></div>
-      <div class="vocab-col"><div class="label" id="labelLearning">in apprendimento</div><div class="vocab-tags" id="learningTags"></div></div>
+      <div class="vocab-col">
+        <div class="label collapsible" id="labelActive" data-target="activeTags">
+          <span class="collapse-arrow" id="arrowActive">▾</span> attivo<span class="vocab-count" id="activeCount"></span>
+        </div>
+        <div class="vocab-tags scrollable" id="activeTags"></div>
+      </div>
+      <div class="vocab-col">
+        <div class="label collapsible" id="labelLearning" data-target="learningTags">
+          <span class="collapse-arrow" id="arrowLearning">▾</span> in apprendimento
+        </div>
+        <div class="vocab-tags" id="learningTags"></div>
+      </div>
     </div>
   </div>
 
@@ -410,7 +424,7 @@ METODO FISSO — non deviare mai:
 - Niente teoria esplicita, niente liste passive di vocaboli. Ogni turno è un compito di PRODUZIONE ATTIVA: dai un compito, lo studente scrive la frase in giapponese romaji, tu correggi.
 - Il feedback deve essere breve (2-3 righe MASSIMO), specifico, diretto, come un insegnante dal vivo che corregge sul momento — mai un saggio, mai elenco di regole.
 - ${t('langInstruction')}
-- IMPORTANTE per la pronuncia: nel campo "correct_answer_jp", scrivi SEMPRE la versione corretta della frase in caratteri giapponesi reali (hiragana/katakana/kanji), usata solo per sintesi vocale e riconoscimento vocale — non fa parte del testo mostrato allo studente come compito.
+- IMPORTANTE per la pronuncia (campo "correct_answer_jp"): questo campo deve SEMPRE contenere la versione in caratteri giapponesi reali (hiragana/katakana/kanji) della frase CORRETTA relativa alla RISPOSTA CHE LO STUDENTE HA APPENA SCRITTO in questo turno (quella che stai correggendo ora) — MAI la frase del nuovo esercizio che stai per proporre. Se è il primissimo turno (nessuna risposta precedente da correggere), lascia questo campo null.
 
 CURRICULUM GRAMMATICALE (sblocco progressivo, dal più semplice al più complesso, copre l'intera progressione fino a B2/C1). Sblocca uno step successivo solo quando l'ultimo padroneggiato ha un tasso di correttezza alto nelle ultime risposte; una volta sbloccato uno step resta mescolato con tutti i precedenti, mai a compartimenti stagni:
 1. Schema base: [soggetto] wa [oggetto] o [verbo]-masu
@@ -443,7 +457,7 @@ REGISTRO OUTPUT: rispondi SEMPRE E SOLO con un oggetto JSON valido, struttura es
   "level_label": string,
   "next_exercise_it": string,
   "next_exercise_hint": string,
-  "correct_answer_jp": string (la frase corretta in caratteri giapponesi reali)
+  "correct_answer_jp": string o null (versione giapponese reale della risposta CORRETTA appena data dallo studente, MAI del nuovo esercizio; null al primo turno)
 }`;
 }
 
@@ -461,6 +475,14 @@ let vocabSearchTerm = '';
 function getAudioCtx(){
   if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   return audioCtx;
+}
+// Deve essere chiamata SINCRONAMENTE dentro un gestore di click/tap,
+// altrimenti i browser mobile bloccano l'audio creato dopo un'attesa asincrona (fetch).
+function ensureAudioUnlocked(){
+  try{
+    const ctx = getAudioCtx();
+    if(ctx.state === 'suspended') ctx.resume();
+  }catch(e){}
 }
 function playTone(freqs, duration, type){
   if(!soundEnabled) return;
@@ -509,8 +531,8 @@ function applyStaticTexts(){
   document.getElementById('menuVocabTitle').textContent = t('menuVocabTitle');
   document.getElementById('menuAccountTitle').textContent = t('menuAccountTitle');
   document.getElementById('menuReminderTitle').textContent = t('menuReminderTitle');
-  document.getElementById('labelActive').textContent = t('labelActive');
-  document.getElementById('labelLearning').textContent = t('labelLearning');
+  document.getElementById('labelActive').innerHTML = `<span class="collapse-arrow" id="arrowActive">▾</span> ${t('labelActive')}<span class="vocab-count" id="activeCount"></span>`;
+  document.getElementById('labelLearning').innerHTML = `<span class="collapse-arrow" id="arrowLearning">▾</span> ${t('labelLearning')}`;
   document.getElementById('resetBtn').textContent = t('resetBtn');
   document.getElementById('changeKeyBtn').textContent = t('changeKeyBtn');
   document.getElementById('vocabSearch').placeholder = t('vocabSearchPlaceholder');
@@ -559,7 +581,11 @@ function getRecognition(){
 function normalizeForCompare(str){
   return (str || '').replace(/[\s、。！？!?.,]/g, '');
 }
-function startPronunciationCheck(){
+
+// Usa il microfono come metodo alternativo per rispondere all'esercizio:
+// riconosce il parlato in giapponese e lo inserisce nella casella di risposta,
+// pronta per essere corretta esattamente come un testo digitato.
+function startVoiceAnswerInput(){
   const rec = getRecognition();
   if(!rec){
     pronResult = { unsupported: true };
@@ -573,12 +599,14 @@ function startPronunciationCheck(){
 
   rec.onresult = (event) => {
     const heard = event.results[0][0].transcript;
-    const target = normalizeForCompare(state.pendingJpAnswer);
-    const said = normalizeForCompare(heard);
-    const matched = target && said && (said === target || target.includes(said) || said.includes(target));
-    pronResult = { heard, matched };
     isRecording = false;
+    pronResult = null;
     render();
+    const ta = document.getElementById('answerInput');
+    if(ta){
+      ta.value = heard;
+      ta.focus();
+    }
   };
   rec.onerror = () => {
     pronResult = { noResult: true };
@@ -807,6 +835,7 @@ Valuta la risposta e dammi il prossimo esercizio secondo le regole del sistema.`
 }
 
 async function handleSubmit(){
+  ensureAudioUnlocked();
   const ta = document.getElementById('answerInput');
   const val = ta.value.trim();
   if(!val) return;
@@ -997,12 +1026,6 @@ function render(){
       </span>
       ${escapeHtml(state.pendingFeedback)}
       ${state.pendingJpAnswer ? `<div class="jp-answer">${escapeHtml(state.pendingJpAnswer)}</div>` : ''}
-      ${state.pendingJpAnswer ? `
-        <div class="actions" style="margin-top:10px;">
-          <button class="mic-btn ${isRecording ? 'recording' : ''}" id="micBtn">${isRecording ? t('micListening') : t('micLabel')}</button>
-        </div>
-      ` : ''}
-      ${renderPronResult()}
     </div>`;
   }
 
@@ -1026,7 +1049,11 @@ function render(){
       ${state.currentExercise.hint ? `<div class="hint">${escapeHtml(state.currentExercise.hint)}</div>` : ''}
     </div>
     <div class="answer-zone"><textarea id="answerInput" placeholder="${t('scriviQui')}"></textarea></div>
-    <div class="actions"><button id="submitBtn">${t('correggi')}</button></div>`;
+    ${renderPronResult()}
+    <div class="actions">
+      <button id="submitBtn">${t('correggi')}</button>
+      <button class="mic-btn ${isRecording ? 'recording' : ''}" id="micBtn" title="${t('micLabel')}">${isRecording ? '🎤...' : '🎤'}</button>
+    </div>`;
   }
 
   app.innerHTML = html;
@@ -1035,7 +1062,7 @@ function render(){
   if(speakBtn) speakBtn.addEventListener('click', () => speakJapanese(state.pendingJpAnswer));
 
   const micBtn = document.getElementById('micBtn');
-  if(micBtn) micBtn.addEventListener('click', startPronunciationCheck);
+  if(micBtn) micBtn.addEventListener('click', startVoiceAnswerInput);
 
   const retryBtn = document.getElementById('retryBtn');
   if(retryBtn) retryBtn.addEventListener('click', () => fetchNext(lastAnswerSent));
@@ -1111,6 +1138,15 @@ document.getElementById('importFile').addEventListener('change', handleImportFil
 document.getElementById('vocabSearch').addEventListener('input', (e) => {
   vocabSearchTerm = e.target.value;
   renderVocabTags();
+});
+document.querySelectorAll('.label.collapsible').forEach(label => {
+  label.addEventListener('click', () => {
+    const targetId = label.getAttribute('data-target');
+    const target = document.getElementById(targetId);
+    const arrow = label.querySelector('.collapse-arrow');
+    target.classList.toggle('collapsed');
+    arrow.classList.toggle('collapsed');
+  });
 });
 
 bootstrap();
