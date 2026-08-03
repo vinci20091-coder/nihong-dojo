@@ -74,7 +74,7 @@
   }
   header::before{
     content:'';
-    position:absolute; top:0; left:-16px; right:-16px; bottom:0;
+    position:absolute; top:-24px; left:-16px; right:-16px; bottom:0;
     background-image:
       radial-gradient(circle at 50% 0%, transparent 17px, var(--gold) 18px, var(--gold) 19px, transparent 20px),
       radial-gradient(circle at 50% 0%, transparent 17px, var(--blue) 18px, var(--blue) 19px, transparent 20px);
@@ -87,7 +87,7 @@
   }
   header::after{
     content:'';
-    position:absolute; top:0; left:-16px; right:-16px; bottom:0;
+    position:absolute; top:-24px; left:-16px; right:-16px; bottom:0;
     background-image: linear-gradient(to bottom, transparent 0%, transparent 45%, var(--paper) 95%);
     pointer-events:none;
     z-index:1;
@@ -242,7 +242,7 @@
     position:fixed; top:0; left:0; bottom:0; width:280px; max-width:82vw;
     background:var(--paper); border-right:1px solid var(--grid);
     transform:translateX(-100%); transition:transform .3s cubic-bezier(.34,1.06,.64,1);
-    z-index:50; padding:20px 18px; overflow-y:auto;
+    z-index:50; padding:20px 18px; overflow-y:auto; overflow-x:hidden;
   }
   .side-menu.show{transform:translateX(0);}
 
@@ -259,8 +259,8 @@
     background:none; border:none; font-size:20px; color:var(--ink-soft); cursor:pointer;
     float:right; padding:0; width:auto; flex:none;
   }
-  .menu-row{display:flex; gap:8px; margin-bottom:2px;}
-  .menu-row button{border-radius:10px; padding:10px 12px; font-size:12px;}
+  .menu-row{display:flex; gap:8px; margin-bottom:2px; min-width:0;}
+  .menu-row button{border-radius:10px; padding:10px 8px; font-size:12px; min-width:0; overflow-wrap:break-word; white-space:normal;}
   .menu-row button.active-choice{background:var(--blue); color:var(--paper); border-color:var(--blue);}
   .menu-row button.secondary.active-choice{background:var(--blue); color:var(--paper);}
 
