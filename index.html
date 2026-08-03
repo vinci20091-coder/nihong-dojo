@@ -64,6 +64,10 @@
     -webkit-tap-highlight-color: transparent;
   }
   .wrap{max-width:640px;margin:0 auto;}
+  body.text-large .wrap{zoom:1.15;}
+  body.text-xlarge .wrap{zoom:1.3;}
+  body.text-large .side-menu{zoom:1.15;}
+  body.text-xlarge .side-menu{zoom:1.3;}
 
   header{
     text-align:center;margin-bottom:18px;position:relative;
@@ -288,6 +292,9 @@
 
   .calendar-grid{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;margin-top:6px;}
   .calendar-day{aspect-ratio:1;border-radius:4px;background:var(--grid);}
+  .trend-bar-wrap{display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;}
+  .trend-bar{width:100%; border-radius:2px 2px 0 0; background:linear-gradient(180deg, var(--gold), var(--blue)); min-height:2px; transition:height .4s ease;}
+  .trend-bar.empty{background:var(--grid);}
   .calendar-day.active{background:var(--blue);}
   .calendar-caption{font-size:10px;color:var(--ink-soft);font-family:'Yuji Boku', 'Courier New', monospace;margin-top:6px;text-align:center;}
 
@@ -375,7 +382,7 @@
 <body>
 <div class="overlay" id="overlay"></div>
 <nav class="side-menu" id="sideMenu">
-  <button class="menu-close" id="menuClose">✕</button>
+  <button class="menu-close" id="menuClose" aria-label="Chiudi menu / Close menu">✕</button>
 
   <div class="menu-section">
     <h3 id="menuLangTitle">🌐 Lingua / Language</h3>
@@ -398,6 +405,15 @@
     <div class="menu-row">
       <button class="secondary" id="themeLightBtn"><span class="no-italic">☀️</span> chiaro</button>
       <button class="secondary" id="themeDarkBtn"><span class="no-italic">🌙</span> scuro</button>
+    </div>
+  </div>
+
+  <div class="menu-section">
+    <h3 id="menuTextSizeTitle">🔤 Dimensione testo</h3>
+    <div class="menu-row">
+      <button class="secondary" id="textSizeNormalBtn"></button>
+      <button class="secondary" id="textSizeLargeBtn"></button>
+      <button class="secondary" id="textSizeXlargeBtn"></button>
     </div>
   </div>
 
@@ -431,6 +447,11 @@
   </div>
 
   <div class="menu-section">
+    <h3 id="menuAchievementsTitle">🏅 Traguardi</h3>
+    <div class="history-list" id="achievementsList"></div>
+  </div>
+
+  <div class="menu-section">
     <h3 id="menuReminderTitle">🔔 Promemoria</h3>
     <div class="menu-row">
       <button class="secondary" id="reminderOnBtn"></button>
@@ -452,7 +473,7 @@
 
 <div class="wrap">
   <header>
-    <button class="menu-btn" id="menuOpen">☰</button>
+    <button class="menu-btn" id="menuOpen" aria-label="Apri menu / Open menu">☰</button>
     <div class="kanji-mark">日本語 道場</div>
     <h1>Nihongo <span class="accent">Dōjō</span></h1>
     <div class="subtitle" id="subtitleText">produzione attiva &middot; niente teoria &middot; solo output</div>
@@ -481,8 +502,15 @@
     <div class="calendar-caption" id="calendarCaption"></div>
     <div class="weekly-goal-wrap">
       <div class="level-bar-track"><div class="level-bar-fill weekly" id="weeklyGoalFill" style="width:0%"></div></div>
-      <div class="calendar-caption" id="weeklyGoalCaption"></div>
+      <div class="calendar-caption" id="weeklyGoalCaption" style="display:inline;"></div>
+      <button class="speak-btn no-italic" id="editWeeklyGoalBtn" style="margin-left:6px;padding:1px 8px;font-size:10px;">✏️</button>
     </div>
+  </div>
+
+  <div class="card" id="trendCard" style="padding:14px 16px;">
+    <div class="eyebrow" id="trendTitle">Andamento</div>
+    <div class="calendar-grid" id="trendGrid" style="grid-template-columns:repeat(14,1fr); align-items:end; height:60px;"></div>
+    <div class="calendar-caption" id="trendCaption"></div>
   </div>
 
   <div id="app"></div>
@@ -496,6 +524,7 @@ const MODE_KEY = 'nihongo-app-mode';
 const APIKEY_KEY = 'nihongo-gemini-key';
 const SOUND_KEY = 'nihongo-sound-enabled';
 const THEME_KEY = 'nihongo-theme';
+const TEXTSIZE_KEY = 'nihongo-text-size';
 const LANG_KEY = 'nihongo-ui-lang';
 const MODEL = 'gemini-3.5-flash';
 
@@ -503,6 +532,7 @@ const UI_TEXT = {
   it: {
     subtitle: "produzione attiva · niente teoria · solo output",
     menuLangTitle: "🌐 Lingua", menuSoundTitle: "🔊 Suoni", menuThemeTitle: "🎨 Tema", menuVocabTitle: "📚 Vocabolario", menuAccountTitle: "⚙️ Account",
+    menuTextSizeTitle: "🔤 Dimensione testo", textSizeNormal: "normale", textSizeLarge: "grande", textSizeXlarge: "molto grande",
     labelActive: "attivo", labelLearning: "in apprendimento",
     resetBtn: "ricomincia da zero", changeKeyBtn: "cambia api key",
     setupIntro: 'Vai su <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a>, crea una key gratuita (nessuna carta richiesta) e incollala qui sotto. Resta salvata solo sul tuo telefono, non viene mai inviata altrove se non a Google.',
@@ -535,12 +565,16 @@ const UI_TEXT = {
     vocabSearchPlaceholder: "🔍 cerca...",
     risultatiTrovati: "risultati trovati", nessunRisultato: "nessun risultato",
     calendarTitle: "Costanza", giorniAttivi: "giorni attivi (ultimi 30)", pathTitle: "Percorso grammaticale",
+    trendTitle: "Andamento precisione", trendMedia: "media", ultimi14: "ultimi 14gg", trendVuoto: "Fai qualche esercizio per vedere l'andamento",
     ripassaBtn: "🔁 ripassa parole deboli", ripassaVuoto: "Nessuna parola da ripassare ancora — continua così!",
     exportBtn: "⬇️ esporta progresso", importBtn: "⬆️ importa progresso",
     exportSuccess: "Progresso esportato.", importSuccess: "Progresso importato con successo!",
     cronologiaVuota: "Nessun esercizio ancora — inizia a rispondere!",
     menuHistoryTitle: "📜 Cronologia",
+    menuAchievementsTitle: "🏅 Traguardi",
     obiettivoSettimanale: "questa settimana",
+    editGoalPrompt: "Quanti esercizi vuoi fare a settimana?",
+    editGoalInvalid: "Numero non valido (tra 1 e 500).",
     shareBtn: "📤 condividi progressi",
     shareCopied: "Riepilogo copiato negli appunti!",
     shareTextTemplate: "🈴 Nihongo Dōjō — i miei progressi:\n📊 Livello: {level}\n🔥 Record streak: {streak}\n📚 Vocaboli attivi: {vocab}\n🎯 Precisione: {accuracy}%",
@@ -554,6 +588,7 @@ const UI_TEXT = {
   en: {
     subtitle: "active production · no theory · output only",
     menuLangTitle: "🌐 Language", menuSoundTitle: "🔊 Sound", menuThemeTitle: "🎨 Theme", menuVocabTitle: "📚 Vocabulary", menuAccountTitle: "⚙️ Account",
+    menuTextSizeTitle: "🔤 Text size", textSizeNormal: "normal", textSizeLarge: "large", textSizeXlarge: "extra large",
     labelActive: "active", labelLearning: "learning",
     resetBtn: "start over", changeKeyBtn: "change api key",
     setupIntro: 'Go to <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a>, create a free key (no card required) and paste it below. It stays saved only on your phone, never sent anywhere except to Google.',
@@ -586,12 +621,16 @@ const UI_TEXT = {
     vocabSearchPlaceholder: "🔍 search...",
     risultatiTrovati: "results found", nessunRisultato: "no results",
     calendarTitle: "Consistency", giorniAttivi: "active days (last 30)", pathTitle: "Grammar path",
+    trendTitle: "Accuracy trend", trendMedia: "average", ultimi14: "last 14d", trendVuoto: "Do a few exercises to see your trend",
     ripassaBtn: "🔁 review weak words", ripassaVuoto: "No words to review yet — keep going!",
     exportBtn: "⬇️ export progress", importBtn: "⬆️ import progress",
     exportSuccess: "Progress exported.", importSuccess: "Progress imported successfully!",
     cronologiaVuota: "No exercises yet — start answering!",
     menuHistoryTitle: "📜 History",
+    menuAchievementsTitle: "🏅 Achievements",
     obiettivoSettimanale: "this week",
+    editGoalPrompt: "How many exercises per week do you want?",
+    editGoalInvalid: "Invalid number (must be between 1 and 500).",
     shareBtn: "📤 share progress",
     shareCopied: "Summary copied to clipboard!",
     shareTextTemplate: "🈴 Nihongo Dōjō — my progress:\n📊 Level: {level}\n🔥 Best streak: {streak}\n📚 Active vocab: {vocab}\n🎯 Accuracy: {accuracy}%",
@@ -725,6 +764,18 @@ function setTheme(theme){
   renderMenuChoices();
 }
 
+function loadTextSizePref(){
+  const size = localStorage.getItem(TEXTSIZE_KEY) || 'normal';
+  document.body.classList.remove('text-large', 'text-xlarge');
+  if(size === 'large') document.body.classList.add('text-large');
+  if(size === 'xlarge') document.body.classList.add('text-xlarge');
+}
+function setTextSize(size){
+  localStorage.setItem(TEXTSIZE_KEY, size);
+  loadTextSizePref();
+  renderMenuChoices();
+}
+
 function loadModePref(){
   appMode = localStorage.getItem(MODE_KEY) || 'exercise';
 }
@@ -763,7 +814,12 @@ function applyStaticTexts(){
   document.getElementById('menuVocabTitle').innerHTML = wrapIcons(t('menuVocabTitle'));
   document.getElementById('menuAccountTitle').innerHTML = wrapIcons(t('menuAccountTitle'));
   document.getElementById('menuThemeTitle').innerHTML = wrapIcons(t('menuThemeTitle'));
+  document.getElementById('menuTextSizeTitle').innerHTML = wrapIcons(t('menuTextSizeTitle'));
+  document.getElementById('textSizeNormalBtn').textContent = t('textSizeNormal');
+  document.getElementById('textSizeLargeBtn').textContent = t('textSizeLarge');
+  document.getElementById('textSizeXlargeBtn').textContent = t('textSizeXlarge');
   document.getElementById('menuHistoryTitle').innerHTML = wrapIcons(t('menuHistoryTitle'));
+  document.getElementById('menuAchievementsTitle').innerHTML = wrapIcons(t('menuAchievementsTitle'));
   document.getElementById('shareBtn').innerHTML = wrapIcons(t('shareBtn'));
   document.getElementById('modeExerciseBtn').innerHTML = wrapIcons(t('modeExerciseBtn'));
   document.getElementById('modeChatBtn').innerHTML = wrapIcons(t('modeChatBtn'));
@@ -774,6 +830,7 @@ function applyStaticTexts(){
   document.getElementById('changeKeyBtn').textContent = t('changeKeyBtn');
   document.getElementById('vocabSearch').placeholder = t('vocabSearchPlaceholder');
   document.getElementById('calendarTitle').textContent = t('calendarTitle');
+  document.getElementById('trendTitle').textContent = t('trendTitle');
   document.getElementById('pathTitle').textContent = t('pathTitle');
   document.getElementById('reminderOnBtn').innerHTML = wrapIcons(t('reminderOn'));
   document.getElementById('reminderOffBtn').innerHTML = wrapIcons(t('reminderOff'));
@@ -791,6 +848,10 @@ function renderMenuChoices(){
   const currentTheme = document.body.getAttribute('data-theme') || 'light';
   document.getElementById('themeLightBtn').classList.toggle('active-choice', currentTheme === 'light');
   document.getElementById('themeDarkBtn').classList.toggle('active-choice', currentTheme === 'dark');
+  const currentSize = localStorage.getItem(TEXTSIZE_KEY) || 'normal';
+  document.getElementById('textSizeNormalBtn').classList.toggle('active-choice', currentSize === 'normal');
+  document.getElementById('textSizeLargeBtn').classList.toggle('active-choice', currentSize === 'large');
+  document.getElementById('textSizeXlargeBtn').classList.toggle('active-choice', currentSize === 'xlarge');
 }
 
 function speakJapanese(text){
@@ -955,8 +1016,9 @@ function defaultState(){
     grammarUnlocked: ['schema base wa/o/-masu'],
     streak: 0, bestStreak: 0, totalCorrect: 0, totalAttempts: 0,
     recentResults: [], exercisesToday: 0, lastActiveDate: null, activityDates: [],
-    dailyCounts: {}, weeklyGoal: 20,
+    dailyCounts: {}, dailyCorrect: {}, weeklyGoal: 20,
     history: [], chatMessages: [],
+    srsData: {}, unlockedAchievements: [],
     currentExercise: null, pendingFeedback: null, pendingCorrect: null, pendingJpAnswer: null
   };
 }
@@ -971,9 +1033,12 @@ function loadState(){
     if(state.pendingJpAnswer === undefined) state.pendingJpAnswer = null;
     if(!state.activityDates) state.activityDates = [];
     if(!state.dailyCounts) state.dailyCounts = {};
+    if(!state.dailyCorrect) state.dailyCorrect = {};
     if(state.weeklyGoal === undefined) state.weeklyGoal = 20;
     if(!state.history) state.history = [];
     if(!state.chatMessages) state.chatMessages = [];
+    if(!state.srsData) state.srsData = {};
+    if(!state.unlockedAchievements) state.unlockedAchievements = [];
     return true;
   }
   return false;
@@ -1004,9 +1069,104 @@ function weeklyCount(){
   return total;
 }
 
+// ===== TRAGUARDI =====
+const ACHIEVEMENTS = [
+  { id:'first_exercise', icon:'🎯', titleIt:'Primo passo', titleEn:'First step', descIt:'Completa il tuo primo esercizio', descEn:'Complete your first exercise',
+    check: s => s.totalAttempts >= 1 },
+  { id:'streak_7', icon:'🔥', titleIt:'Una settimana di fuoco', titleEn:'A week on fire', descIt:'Raggiungi uno streak di 7', descEn:'Reach a streak of 7',
+    check: s => (s.bestStreak||0) >= 7 },
+  { id:'streak_30', icon:'⚡', titleIt:'Inarrestabile', titleEn:'Unstoppable', descIt:'Raggiungi uno streak di 30', descEn:'Reach a streak of 30',
+    check: s => (s.bestStreak||0) >= 30 },
+  { id:'hundred_exercises', icon:'💯', titleIt:'Cento esercizi', titleEn:'A hundred exercises', descIt:'Completa 100 esercizi in totale', descEn:'Complete 100 exercises total',
+    check: s => s.totalAttempts >= 100 },
+  { id:'vocab_50', icon:'📚', titleIt:'Cinquanta parole', titleEn:'Fifty words', descIt:'Raggiungi 50 parole nel vocabolario attivo', descEn:'Reach 50 words in active vocabulary',
+    check: s => s.activeVocab.length >= 50 },
+  { id:'vocab_150', icon:'🏯', titleIt:'Biblioteca personale', titleEn:'Personal library', descIt:'Raggiungi 150 parole nel vocabolario attivo', descEn:'Reach 150 words in active vocabulary',
+    check: s => s.activeVocab.length >= 150 },
+  { id:'level_b1', icon:'🎓', titleIt:'Livello B1', titleEn:'Level B1', descIt:'Raggiungi il livello B1', descEn:'Reach level B1',
+    check: s => (s.levelLabel||'').toUpperCase().includes('B1') || (s.levelLabel||'').toUpperCase().includes('B2') || (s.levelLabel||'').toUpperCase().includes('C1') },
+  { id:'weekly_goal', icon:'🏆', titleIt:'Obiettivo settimanale', titleEn:'Weekly goal', descIt:'Raggiungi il tuo obiettivo settimanale', descEn:'Reach your weekly goal',
+    check: s => weeklyCount() >= (s.weeklyGoal || 20) },
+  { id:'consistency_14', icon:'📅', titleIt:'Due settimane di costanza', titleEn:'Two weeks of consistency', descIt:'Fai esercizi in 14 giorni diversi', descEn:'Practice on 14 different days',
+    check: s => (s.activityDates||[]).length >= 14 }
+];
+
+function checkAchievements(){
+  if(!state.unlockedAchievements) state.unlockedAchievements = [];
+  let newlyUnlocked = [];
+  ACHIEVEMENTS.forEach(a => {
+    if(!state.unlockedAchievements.includes(a.id) && a.check(state)){
+      state.unlockedAchievements.push(a.id);
+      newlyUnlocked.push(a);
+    }
+  });
+  if(newlyUnlocked.length){
+    saveState();
+    newlyUnlocked.forEach((a, i) => {
+      setTimeout(() => {
+        showToast(`${a.icon} ${uiLang === 'it' ? 'Traguardo sbloccato' : 'Achievement unlocked'}: ${uiLang === 'it' ? a.titleIt : a.titleEn}`);
+      }, i * 2600);
+    });
+  }
+  return newlyUnlocked;
+}
+
 function pushHistory(entry){
   state.history.unshift(entry);
   if(state.history.length > 15) state.history = state.history.slice(0, 15);
+}
+
+// ===== RIPETIZIONE DILAZIONATA (SM-2 semplificato, stile Anki) =====
+// Ogni parola ha: interval (giorni prima del prossimo ripasso), ease (facilita'
+// personale, parte da 2.5 e si aggiusta), reps (ripassi consecutivi riusciti),
+// nextReview (timestamp del prossimo ripasso dovuto).
+function srsKey(vocabEntry){
+  // Usa solo la parte giapponese/romaji come chiave stabile, non la traduzione intera
+  return (vocabEntry || '').split('=')[0].trim().toLowerCase();
+}
+function srsInit(vocabEntry){
+  const key = srsKey(vocabEntry);
+  if(!key) return;
+  if(!state.srsData[key]){
+    state.srsData[key] = { interval: 1, ease: 2.5, reps: 0, nextReview: Date.now() + 24*60*60*1000, lastReviewed: null };
+  }
+}
+function srsReview(vocabEntry, correct){
+  const key = srsKey(vocabEntry);
+  if(!key) return;
+  let entry = state.srsData[key] || { interval: 1, ease: 2.5, reps: 0, nextReview: Date.now(), lastReviewed: null };
+  if(!correct){
+    entry.reps = 0;
+    entry.interval = 1;
+    entry.ease = Math.max(1.3, entry.ease - 0.2);
+  } else {
+    entry.reps++;
+    if(entry.reps === 1) entry.interval = 1;
+    else if(entry.reps === 2) entry.interval = 6;
+    else entry.interval = Math.round(entry.interval * entry.ease);
+    entry.ease = Math.min(2.8, entry.ease + 0.1);
+  }
+  entry.lastReviewed = Date.now();
+  entry.nextReview = Date.now() + entry.interval * 24*60*60*1000;
+  state.srsData[key] = entry;
+}
+function srsPromote(vocabEntry){
+  // Una parola passata da "in apprendimento" ad "attiva": trattata come ripasso riuscito forte
+  srsInit(vocabEntry);
+  srsReview(vocabEntry, true);
+}
+// Sceglie le parole piu' scadute (o mai ripassate) tra quelle in apprendimento
+function srsDueWords(limit){
+  if(!state.learningVocab || !state.learningVocab.length) return [];
+  const now = Date.now();
+  const withDue = state.learningVocab.map(w => {
+    const key = srsKey(w);
+    const entry = state.srsData[key];
+    const due = entry ? entry.nextReview : 0; // mai vista prima = massima priorita'
+    return { word: w, due };
+  });
+  withDue.sort((a,b) => a.due - b.due);
+  return withDue.slice(0, limit || 3).map(x => x.word);
 }
 
 // Genera gli ultimi 30 giorni (dal piu vecchio al piu recente) per il calendario di costanza
@@ -1028,6 +1188,33 @@ function renderCalendar(){
   grid.innerHTML = days.map(d => `<div class="calendar-day ${activeSet.has(d) ? 'active' : ''}"></div>`).join('');
   const activeCount = days.filter(d => activeSet.has(d)).length;
   caption.textContent = `${activeCount}/30 ${t('giorniAttivi')}`;
+}
+
+function renderAccuracyTrend(){
+  const grid = document.getElementById('trendGrid');
+  const caption = document.getElementById('trendCaption');
+  if(!grid || !state) return;
+  const days = [];
+  for(let i = 13; i >= 0; i--){
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    days.push(d.toDateString());
+  }
+  let daysWithData = 0, sumPct = 0;
+  grid.innerHTML = days.map(d => {
+    const total = state.dailyCounts[d] || 0;
+    const correct = state.dailyCorrect ? (state.dailyCorrect[d] || 0) : 0;
+    const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
+    if(total > 0){ daysWithData++; sumPct += pct; }
+    const heightPct = total > 0 ? Math.max(6, pct) : 0;
+    return `<div class="trend-bar-wrap" title="${d}: ${total > 0 ? pct + '%' : '—'}">
+      <div class="trend-bar ${total > 0 ? '' : 'empty'}" style="height:${total > 0 ? heightPct : 4}%;"></div>
+    </div>`;
+  }).join('');
+  const avg = daysWithData ? Math.round(sumPct / daysWithData) : 0;
+  caption.textContent = daysWithData
+    ? `${t('trendMedia')}: ${avg}% (${t('ultimi14')})`
+    : t('trendVuoto');
 }
 
 function renderProgressPath(){
@@ -1057,6 +1244,21 @@ function renderWeeklyGoal(){
   const pct = Math.min(100, Math.round((count / goal) * 100));
   fill.style.width = pct + '%';
   caption.textContent = `${count}/${goal} ${t('obiettivoSettimanale')}`;
+}
+
+function handleEditWeeklyGoal(){
+  const current = state.weeklyGoal || 20;
+  const input = prompt(t('editGoalPrompt'), current);
+  if(input === null) return; // annullato
+  const val = parseInt(input, 10);
+  if(isNaN(val) || val < 1 || val > 500){
+    showToast(t('editGoalInvalid'));
+    return;
+  }
+  state.weeklyGoal = val;
+  saveState();
+  renderWeeklyGoal();
+  checkAchievements();
 }
 
 
@@ -1093,6 +1295,7 @@ async function retryPendingAnswerIfAny(){
 async function bootstrap(){
   loadSoundPref();
   loadThemePref();
+  loadTextSizePref();
   loadLangPref();
   loadModePref();
   applyStaticTexts();
@@ -1102,7 +1305,7 @@ async function bootstrap(){
   if(!apiKey){ renderSetup(); return; }
   const had = loadState();
   if(!had){ state = defaultState(); await fetchNext(null); }
-  else { render(); }
+  else { render(); checkAchievements(); renderAchievements(); }
   setTimeout(checkReminderNow, 1500);
   window.addEventListener('online', retryPendingAnswerIfAny);
 }
@@ -1119,8 +1322,10 @@ async function fetchNext(userAnswer, forceReviewMode){
 
   let userMsg;
   if(forceReviewMode){
+    const dueWords = srsDueWords(3);
+    state.currentReviewWords = dueWords;
     userMsg = `Profilo studente attuale: ${JSON.stringify(profileSummary)}.
-Lo studente ha chiesto esplicitamente una sessione di RIPASSO MIRATO: crea un esercizio che usi il più possibile parole dalla lista "learning_vocab" (quelle ancora in apprendimento), per rinforzarle. Non introdurre vocaboli nuovi in questo turno. feedback e correct devono essere null (è un nuovo esercizio, non una correzione).`;
+Lo studente ha chiesto esplicitamente una sessione di RIPASSO MIRATO. Crea un esercizio che usi il più possibile queste parole specifiche (le più urgenti da ripassare): ${JSON.stringify(dueWords)}. Non introdurre vocaboli nuovi in questo turno. feedback e correct devono essere null (è un nuovo esercizio, non una correzione).`;
   } else {
     userMsg = userAnswer === null
       ? `Primo avvio. Profilo studente: ${JSON.stringify(profileSummary)}. Dammi il primo esercizio (feedback e correct devono essere null).`
@@ -1158,19 +1363,33 @@ Valuta la risposta e dammi il prossimo esercizio secondo le regole del sistema.`
         jp: result.correct_answer_jp || null,
         date: new Date().toISOString()
       });
+
+      // Precisione giornaliera, per il grafico d'andamento
+      const todayKey = new Date().toDateString();
+      state.dailyCorrect[todayKey] = (state.dailyCorrect[todayKey] || 0) + (result.correct ? 1 : 0);
+
+      // Se questo esercizio era un ripasso mirato, valuto le parole coinvolte via SRS
+      if(state.currentReviewWords && state.currentReviewWords.length){
+        state.currentReviewWords.forEach(w => srsReview(w, !!result.correct));
+        state.currentReviewWords = null;
+      }
     } else {
       state.pendingFeedback = null; state.pendingCorrect = null; state.pendingJpAnswer = null;
     }
 
     if(result.vocab_new && result.vocab_new.length){
       result.vocab_new.forEach(v => {
-        if(!state.learningVocab.includes(v) && !state.activeVocab.includes(v)) state.learningVocab.push(v);
+        if(!state.learningVocab.includes(v) && !state.activeVocab.includes(v)){
+          state.learningVocab.push(v);
+          srsInit(v);
+        }
       });
     }
     if(result.vocab_learned && result.vocab_learned.length){
       result.vocab_learned.forEach(v => {
         state.learningVocab = state.learningVocab.filter(x => x !== v);
         if(!state.activeVocab.includes(v)) state.activeVocab.push(v);
+        srsPromote(v);
       });
     }
     if(result.grammar_unlocked && !state.grammarUnlocked.includes(result.grammar_unlocked)){
@@ -1181,6 +1400,7 @@ Valuta la risposta e dammi il prossimo esercizio secondo le regole del sistema.`
     state.currentExercise = { it: result.next_exercise_it, hint: result.next_exercise_hint };
     saveState();
     clearPendingAnswer();
+    checkAchievements();
   }catch(e){
     const isOffline = !navigator.onLine || e.message === 'Failed to fetch' || e.name === 'TypeError';
     if(isOffline && userAnswer !== null && !forceReviewMode){
@@ -1397,8 +1617,7 @@ function renderSetup(){
 }
 
 function pickSuggestedWords(){
-  if(!state.learningVocab || !state.learningVocab.length) return [];
-  return state.learningVocab.slice(0, 3);
+  return srsDueWords(3);
 }
 
 function render(){
@@ -1436,6 +1655,7 @@ function render(){
   renderCalendar();
   renderProgressPath();
   renderWeeklyGoal();
+  renderAccuracyTrend();
 
   stampNum.textContent = state.streak;
   stamp.classList.toggle('show', !!uiState.showStamp);
@@ -1486,7 +1706,7 @@ function render(){
     ${renderPronResult()}
     <div class="actions">
       <button id="submitBtn">${t('correggi')}</button>
-      <button class="mic-btn ${isRecording ? 'recording' : ''}" id="micBtn" title="${t('micLabel')}">${isRecording ? '<span class="no-italic">🎤...</span>' : '<span class="no-italic">🎤</span>'}</button>
+      <button class="mic-btn ${isRecording ? 'recording' : ''}" id="micBtn" title="${t('micLabel')}" aria-label="${t('micLabel')}">${isRecording ? '<span class="no-italic">🎤...</span>' : '<span class="no-italic">🎤</span>'}</button>
     </div>`;
   }
 
@@ -1514,6 +1734,7 @@ function render(){
 
   renderVocabTags();
   renderHistory();
+  renderAchievements();
 }
 
 function renderChatUI(){
@@ -1547,7 +1768,7 @@ function renderChatUI(){
   html += `<div class="answer-zone"><textarea id="chatInput" placeholder="${t('chatPlaceholder')}"></textarea></div>
   <div class="actions">
     <button id="chatSendBtn" ${chatLoading ? 'disabled' : ''}>${t('invia')}</button>
-    <button class="mic-btn ${isRecording ? 'recording' : ''}" id="chatMicBtn" title="${t('micLabel')}">${isRecording ? '<span class="no-italic">🎤...</span>' : '<span class="no-italic">🎤</span>'}</button>
+    <button class="mic-btn ${isRecording ? 'recording' : ''}" id="chatMicBtn" title="${t('micLabel')}" aria-label="${t('micLabel')}">${isRecording ? '<span class="no-italic">🎤...</span>' : '<span class="no-italic">🎤</span>'}</button>
   </div>`;
 
   app.innerHTML = html;
@@ -1594,6 +1815,25 @@ function renderHistory(){
       </div>
     </div>
   `).join('');
+}
+
+function renderAchievements(){
+  const list = document.getElementById('achievementsList');
+  if(!list || !state) return;
+  const unlocked = state.unlockedAchievements || [];
+  list.innerHTML = ACHIEVEMENTS.map(a => {
+    const isUnlocked = unlocked.includes(a.id);
+    const title = uiLang === 'it' ? a.titleIt : a.titleEn;
+    const desc = uiLang === 'it' ? a.descIt : a.descEn;
+    return `
+    <div class="history-item" style="opacity:${isUnlocked ? 1 : 0.4};">
+      <span class="history-icon no-italic">${isUnlocked ? a.icon : '🔒'}</span>
+      <div class="history-body">
+        <div class="history-task">${escapeHtml(title)}</div>
+        <div class="history-answer">${escapeHtml(desc)}</div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function renderVocabTags(){
@@ -1697,6 +1937,10 @@ document.getElementById('reminderOnBtn').addEventListener('click', enableReminde
 document.getElementById('reminderOffBtn').addEventListener('click', disableReminder);
 document.getElementById('themeLightBtn').addEventListener('click', () => setTheme('light'));
 document.getElementById('themeDarkBtn').addEventListener('click', () => setTheme('dark'));
+document.getElementById('textSizeNormalBtn').addEventListener('click', () => setTextSize('normal'));
+document.getElementById('textSizeLargeBtn').addEventListener('click', () => setTextSize('large'));
+document.getElementById('textSizeXlargeBtn').addEventListener('click', () => setTextSize('xlarge'));
+document.getElementById('editWeeklyGoalBtn').addEventListener('click', handleEditWeeklyGoal);
 document.getElementById('modeExerciseBtn').addEventListener('click', () => setMode('exercise'));
 document.getElementById('modeChatBtn').addEventListener('click', () => setMode('chat'));
 document.getElementById('shareBtn').addEventListener('click', handleShare);
@@ -1716,6 +1960,16 @@ document.querySelectorAll('.label.collapsible').forEach(label => {
 });
 
 bootstrap();
+
+// Registra il service worker per il caricamento offline (non blocca l'avvio)
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {
+      // se la registrazione fallisce (es. server non lo serve ancora), l'app
+      // funziona comunque normalmente, semplicemente senza cache offline
+    });
+  });
+}
 </script>
 </body>
 </html>
