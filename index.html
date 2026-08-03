@@ -153,7 +153,7 @@
 
   .stamp{
     position:relative;width:80px;height:80px;border-radius:50%;
-    border:3px solid var(--red);color:var(--red);
+    border:3px solid var(--gold);color:var(--gold);
     display:flex;align-items:center;justify-content:center;flex-direction:column;
     font-family:'Yuji Boku', 'Courier New', monospace;font-size:11px;margin:0 auto 8px;
     transform:rotate(-8deg) scale(0);opacity:0;
@@ -168,10 +168,10 @@
   .task-it{font-size:19px;line-height:1.5;}
   .hint{margin-top:10px;font-size:13px;color:var(--ink-soft);font-style:italic;}
 
-  .feedback{padding:16px 18px;margin-bottom:16px;border-radius:14px;font-size:14.5px;line-height:1.55;border-left:4px solid var(--moss);background:#EEEADB;animation:cardIn .3s ease;}
-  .feedback.wrong{border-left-color:var(--error);}
-  .feedback .verdict{font-family:'Yuji Boku', 'Courier New', monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;color:var(--moss);}
-  .feedback.wrong .verdict{color:var(--error);}
+  .feedback{padding:16px 18px;margin-bottom:16px;border-radius:14px;font-size:14.5px;line-height:1.55;border-left:4px solid var(--dot-correct);background:#EEEADB;animation:cardIn .3s ease;}
+  .feedback.wrong{border-left-color:var(--dot-wrong);}
+  .feedback .verdict{font-family:'Yuji Boku', 'Courier New', monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;color:var(--dot-correct);}
+  .feedback.wrong .verdict{color:var(--dot-wrong);}
   .speak-btn{
     background:none;border:1px solid currentColor;border-radius:16px;
     padding:3px 12px;font-size:11px;font-family:'Yuji Boku', 'Courier New', monospace;
@@ -184,7 +184,7 @@
     margin-top:10px; padding:10px 12px; border-radius:10px; font-size:13px;
     background:var(--paper); border:1px solid var(--grid);
   }
-  .pron-result.match{border-color:var(--moss); color:var(--moss);}
+  .pron-result.match{border-color:var(--dot-correct); color:var(--dot-correct);}
   .pron-result.nomatch{border-color:var(--gold); color:var(--ink-soft);}
 
   .answer-zone{margin-bottom:14px;}
@@ -294,7 +294,7 @@
   .vocab-tags.scrollable::-webkit-scrollbar-thumb{background:var(--grid);border-radius:3px;}
   .vocab-count{font-size:10px;color:var(--ink-soft);font-family:'Yuji Boku', 'Courier New', monospace;margin-left:4px;opacity:0.7;}
   .tag{background:var(--paper);border:1px solid var(--grid);border-radius:8px;padding:3px 9px;font-size:12px;font-family:'Yuji Boku', 'Courier New', monospace;color:var(--ink-soft);}
-  .tag.active{color:var(--moss);border-color:var(--moss);}
+  .tag.active{color:var(--dot-correct);border-color:var(--dot-correct);}
 
   .menu-footer-btn{width:100%; margin-top:8px;}
 
@@ -332,7 +332,7 @@
   .history-answer{color:var(--ink); font-family:'Yuji Boku', 'Courier New', monospace; word-break:break-word;}
   .history-empty{color:var(--ink-soft); font-size:12px; text-align:center; padding:10px 0;}
   .weekly-goal-wrap{margin-top:12px;}
-  .level-bar-fill.weekly{background:linear-gradient(90deg, var(--teal), var(--moss));}
+  .level-bar-fill.weekly{background:var(--dot-correct);}
 
   .mode-switch{display:flex;justify-content:center;gap:8px;margin-top:14px;}
   .mode-btn{
@@ -511,7 +511,7 @@
     <div class="weekly-goal-wrap">
       <div class="level-bar-track"><div class="level-bar-fill weekly" id="weeklyGoalFill" style="width:0%"></div></div>
       <div class="calendar-caption" id="weeklyGoalCaption" style="display:inline;"></div>
-      <button class="speak-btn no-italic" id="editWeeklyGoalBtn" style="margin-left:6px;padding:1px 8px;font-size:10px;">✏️</button>
+      <button class="speak-btn no-italic" id="editWeeklyGoalBtn" style="margin-left:6px;padding:1px 8px;font-size:10px;color:var(--dot-correct);border-color:var(--dot-correct);">✏️</button>
     </div>
   </div>
 
