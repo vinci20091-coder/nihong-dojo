@@ -51,6 +51,7 @@
   }
   body{transition:background-color .3s ease, color .3s ease;}
   *{box-sizing:border-box;}
+  html, body{overflow-x:hidden; max-width:100vw;}
   body{
     margin:0;
     background: var(--paper);
@@ -66,8 +67,6 @@
   .wrap{max-width:640px;margin:0 auto;}
   body.text-large .wrap{zoom:1.15;}
   body.text-xlarge .wrap{zoom:1.3;}
-  body.text-large .side-menu{zoom:1.15;}
-  body.text-xlarge .side-menu{zoom:1.3;}
 
   header{
     text-align:center;margin-bottom:18px;position:relative;
@@ -75,27 +74,29 @@
   }
   header::before{
     content:'';
-    position:absolute; top:0; left:-16px; right:-16px; height:120px;
+    position:absolute; top:0; left:-16px; right:-16px; bottom:0;
     background-image:
       radial-gradient(circle at 50% 0%, transparent 17px, var(--gold) 18px, var(--gold) 19px, transparent 20px),
       radial-gradient(circle at 50% 0%, transparent 17px, var(--blue) 18px, var(--blue) 19px, transparent 20px);
     background-position: 0 0, 18px 18px;
     background-size: 36px 36px;
+    background-repeat: repeat;
     opacity:0.24;
     -webkit-mask-image: linear-gradient(to bottom, black 0%, black 55%, transparent 100%);
     mask-image: linear-gradient(to bottom, black 0%, black 55%, transparent 100%);
     pointer-events:none;
     z-index:0;
   }
-  header > *{ position:relative; z-index:1; }
+  header > *{ position:relative; z-index:2; }
   .menu-btn{
     position:absolute; top:0; left:0;
     background:var(--paper-2); border:1px solid var(--grid); border-radius:12px;
-    width:40px; height:40px; padding:0; flex:none;
+    width:44px; height:44px; padding:0; flex:none;
     font-size:16px; color:var(--ink); cursor:pointer;
     display:flex; align-items:center; justify-content:center;
     transition:background .15s ease;
     font-style:normal; font-family:Arial, sans-serif;
+    z-index:5;
   }
   .menu-btn:hover{background:var(--blue); color:var(--paper); border-color:var(--blue);}
 
@@ -1310,7 +1311,8 @@ async function bootstrap(){
   window.addEventListener('online', retryPendingAnswerIfAny);
 }
 
-async function fetchNext(userAnswer, forceReviewMode){
+async function fetchNext(userAnswer, forceReviewMode, autoRetryCount){
+  autoRetryCount = autoRetryCount || 0;
   lastAnswerSent = userAnswer;
   pronResult = null;
   uiState.loading = true; uiState.error = null; render();
@@ -1410,6 +1412,17 @@ Valuta la risposta e dammi il prossimo esercizio secondo le regole del sistema.`
       uiState.error = e.message;
     }
     console.error(e);
+
+    // Retry automatico e silenzioso solo per il caricamento di un nuovo esercizio
+    // (non per la correzione di una risposta gia' data), ed esclude errori che
+    // un ritentativo non risolverebbe comunque (quota esaurita, api key non valida).
+    const nonRetryable = e.message === t('errQuota') || e.message === t('errApiKey');
+    if(userAnswer === null && !nonRetryable && autoRetryCount < 2){
+      uiState.error = null;
+      uiState.loading = true; render();
+      setTimeout(() => { fetchNext(userAnswer, forceReviewMode, autoRetryCount + 1); }, 1800);
+      return;
+    }
   }
   uiState.loading = false; render();
 }
