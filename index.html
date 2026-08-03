@@ -560,6 +560,8 @@ const UI_TEXT = {
     errApiKey: 'API key non valida. Tocca "cambia api key" e reinseriscila con attenzione.',
     errTimeout: "Nessuna risposta da Gemini dopo 25 secondi. Controlla la connessione e riprova.",
     errEmpty: "Risposta vuota da Gemini (possibile blocco safety filter). Riprova.",
+    errServer: "Piccolo intoppo temporaneo dal server. Riprova tra un attimo.",
+    errParse: "Risposta un po' confusa ricevuta, niente di grave. Riprovo automaticamente.",
     errOffline: "Connessione assente. La tua risposta è salvata e verrà inviata automaticamente appena torni online.",
     retryingOffline: "Connessione tornata — invio la risposta in sospeso...",
     langInstruction: "Scrivi SEMPRE in italiano nei campi feedback, next_exercise_it, next_exercise_hint.",
@@ -616,6 +618,8 @@ const UI_TEXT = {
     errApiKey: 'Invalid API key. Tap "change api key" and re-enter it carefully.',
     errTimeout: "No response from Gemini after 25 seconds. Check your connection and retry.",
     errEmpty: "Empty response from Gemini (possible safety filter block). Retry.",
+    errServer: "Small temporary server hiccup. Try again in a moment.",
+    errParse: "Got a slightly confused reply, nothing serious. Retrying automatically.",
     errOffline: "No connection. Your answer is saved and will be sent automatically once you're back online.",
     retryingOffline: "Back online — sending your pending answer...",
     langInstruction: "Always write in English in the feedback, next_exercise_it, next_exercise_hint fields (even though the field is named 'it', use English).",
@@ -947,15 +951,16 @@ async function callGeminiRaw(userMsg, systemPrompt){
       body: JSON.stringify({
         system_instruction: { parts: [{ text: systemPrompt }] },
         contents: [{ role:'user', parts:[{ text: userMsg }] }],
-        generationConfig: { responseMimeType: 'application/json' }
+        generationConfig: { responseMimeType: 'application/json', maxOutputTokens: 3000 }
       }),
       signal: controller.signal
     });
     if(!res.ok){
       const errText = await res.text();
+      console.error('Errore API Gemini (grezzo):', res.status, errText);
       if(res.status === 429) throw new Error(t('errQuota'));
       if(res.status === 401) throw new Error(t('errApiKey'));
-      throw new Error('Errore API Gemini: ' + res.status + ' ' + errText.slice(0,200));
+      throw new Error(t('errServer'));
     }
     const data = await res.json();
     if(!data.candidates || !data.candidates.length) throw new Error(t('errEmpty'));
@@ -996,7 +1001,10 @@ async function callGeminiChat(userMsg){
 
 function extractJson(text){
   const start = text.indexOf('{');
-  if(start === -1) throw new Error('Nessun JSON trovato nella risposta.');
+  if(start === -1){
+    console.error('Nessun JSON nella risposta (grezzo):', text);
+    throw new Error(t('errParse'));
+  }
   let depth = 0, inString = false, escape = false;
   for(let i = start; i < text.length; i++){
     const ch = text[i];
@@ -1009,11 +1017,19 @@ function extractJson(text){
       else if(ch === '{') depth++;
       else if(ch === '}'){
         depth--;
-        if(depth === 0) return JSON.parse(text.slice(start, i + 1));
+        if(depth === 0){
+          try{
+            return JSON.parse(text.slice(start, i + 1));
+          } catch(parseErr){
+            console.error('JSON malformato (grezzo):', text, parseErr);
+            throw new Error(t('errParse'));
+          }
+        }
       }
     }
   }
-  throw new Error('JSON incompleto nella risposta di Gemini.');
+  console.error('JSON incompleto/troncato (grezzo):', text);
+  throw new Error(t('errParse'));
 }
 
 function defaultState(){
@@ -1317,15 +1333,25 @@ async function bootstrap(){
   if(!had){
     state = defaultState();
     fetchNext(null);
-    // Cane da guardia: se dopo 6 secondi siamo ancora bloccati (anche nel caso
-    // limite in cui la richiesta di rete non si risolve né fallisce mai),
-    // forziamo un nuovo tentativo da soli, senza aspettare che l'utente tocchi nulla.
-    setTimeout(() => {
-      if(state && !state.currentExercise && uiState.loading){
+    // Cane da guardia: controlla ogni 4 secondi se siamo ancora bloccati (anche
+    // nel caso limite in cui la richiesta di rete non si risolve né fallisce
+    // mai), e forza un nuovo tentativo da solo, ripetendo il controllo finché
+    // non arriva davvero un esercizio - non solo una volta, così anche se il
+    // tentativo di recupero si blocca a sua volta, l'app continua a riprovare
+    // senza mai richiedere il tocco manuale dell'utente.
+    let watchdogChecks = 0;
+    const watchdog = setInterval(() => {
+      watchdogChecks++;
+      if(state && state.currentExercise){
+        clearInterval(watchdog);
+        return;
+      }
+      if(watchdogChecks > 10){ clearInterval(watchdog); return; } // limite di sicurezza, ~40s
+      if(uiState.loading){
         fetchNext(null);
       }
-    }, 6000);
-  } else { render(); checkAchievements(); renderAchievements(); }
+    }, 4000);
+  } else { uiState.loading = false; render(); checkAchievements(); renderAchievements(); }
   setTimeout(checkReminderNow, 1500);
   window.addEventListener('online', retryPendingAnswerIfAny);
 }
@@ -1427,20 +1453,28 @@ Valuta la risposta e dammi il prossimo esercizio secondo le regole del sistema.`
     if(isOffline && userAnswer !== null && !forceReviewMode){
       savePendingAnswer(userAnswer);
       uiState.error = t('errOffline');
+      console.error(e);
     } else {
-      uiState.error = e.message;
-    }
-    console.error(e);
+      console.error(e);
 
-    // Retry automatico e silenzioso solo per il caricamento di un nuovo esercizio
-    // (non per la correzione di una risposta gia' data), ed esclude errori che
-    // un ritentativo non risolverebbe comunque (quota esaurita, api key non valida).
-    const nonRetryable = e.message === t('errQuota') || e.message === t('errApiKey');
-    if(userAnswer === null && !nonRetryable && autoRetryCount < 2){
-      uiState.error = null;
-      uiState.loading = true; render();
-      setTimeout(() => { fetchNext(userAnswer, forceReviewMode, autoRetryCount + 1); }, 1800);
-      return;
+      // Retry automatico e silenzioso per gli errori tecnici transitori (risposta
+      // malformata/troncata, intoppo temporaneo del server) - succede sia al primo
+      // caricamento sia quando si corregge una risposta gia' data. Esclude gli
+      // errori che un ritentativo non risolverebbe comunque (quota, api key, offline).
+      const isTransient = e.message === t('errParse') || e.message === t('errServer') || e.message === t('errTimeout') || e.message === t('errEmpty');
+      const nonRetryable = e.message === t('errQuota') || e.message === t('errApiKey');
+      // Al primo avvio (nessun esercizio ancora mostrato) ritentiamo su QUALSIASI
+      // errore tranne quota/api-key, perché non c'e' nulla da perdere: l'utente
+      // non ha ancora visto niente, meglio un altro tentativo silenzioso che un
+      // messaggio d'errore secco appena aperta l'app.
+      const shouldRetry = isTransient || (userAnswer === null && !nonRetryable);
+      if(shouldRetry && autoRetryCount < 3){
+        uiState.error = null;
+        uiState.loading = true; render();
+        setTimeout(() => { fetchNext(userAnswer, forceReviewMode, autoRetryCount + 1); }, 1500);
+        return;
+      }
+      uiState.error = e.message;
     }
   }
   uiState.loading = false; render();
@@ -1644,7 +1678,7 @@ function renderSetup(){
     setApiKey(val);
     const had = loadState();
     if(!had){ state = defaultState(); await fetchNext(null); }
-    else { render(); }
+    else { uiState.loading = false; render(); }
   });
 }
 
