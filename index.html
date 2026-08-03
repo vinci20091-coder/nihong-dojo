@@ -261,6 +261,8 @@
   }
   .menu-row{display:flex; gap:8px; margin-bottom:2px; min-width:0;}
   .menu-row button{border-radius:10px; padding:10px 8px; font-size:12px; min-width:0; overflow-wrap:break-word; white-space:normal;}
+  .menu-row-wrap{flex-wrap:wrap;}
+  .menu-row-wrap button{flex:1 1 calc(50% - 4px); min-width:90px;}
   .menu-row button.active-choice{background:var(--blue); color:var(--paper); border-color:var(--blue);}
   .menu-row button.secondary.active-choice{background:var(--blue); color:var(--paper);}
 
@@ -416,7 +418,7 @@
 
   <div class="menu-section">
     <h3 id="menuTextSizeTitle">🔤 Dimensione testo</h3>
-    <div class="menu-row">
+    <div class="menu-row menu-row-wrap">
       <button class="secondary" id="textSizeNormalBtn"></button>
       <button class="secondary" id="textSizeLargeBtn"></button>
       <button class="secondary" id="textSizeXlargeBtn"></button>
