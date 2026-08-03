@@ -82,10 +82,15 @@
     background-size: 36px 36px;
     background-repeat: repeat;
     opacity:0.24;
-    -webkit-mask-image: linear-gradient(to bottom, black 0%, black 55%, transparent 100%);
-    mask-image: linear-gradient(to bottom, black 0%, black 55%, transparent 100%);
     pointer-events:none;
     z-index:0;
+  }
+  header::after{
+    content:'';
+    position:absolute; top:0; left:-16px; right:-16px; bottom:0;
+    background-image: linear-gradient(to bottom, transparent 0%, transparent 45%, var(--paper) 95%);
+    pointer-events:none;
+    z-index:1;
   }
   header > *{ position:relative; z-index:2; }
   .menu-btn{
@@ -1266,10 +1271,12 @@ function handleEditWeeklyGoal(){
 function openMenu(){
   document.getElementById('sideMenu').classList.add('show');
   document.getElementById('overlay').classList.add('show');
+  document.body.style.overflow = 'hidden';
 }
 function closeMenu(){
   document.getElementById('sideMenu').classList.remove('show');
   document.getElementById('overlay').classList.remove('show');
+  document.body.style.overflow = '';
 }
 
 // ===== GESTIONE OFFLINE: salva la risposta se cade la rete, reinvia al ritorno online =====
@@ -1305,8 +1312,18 @@ async function bootstrap(){
   apiKey = getApiKey();
   if(!apiKey){ renderSetup(); return; }
   const had = loadState();
-  if(!had){ state = defaultState(); await fetchNext(null); }
-  else { render(); checkAchievements(); renderAchievements(); }
+  if(!had){
+    state = defaultState();
+    fetchNext(null);
+    // Cane da guardia: se dopo 6 secondi siamo ancora bloccati (anche nel caso
+    // limite in cui la richiesta di rete non si risolve né fallisce mai),
+    // forziamo un nuovo tentativo da soli, senza aspettare che l'utente tocchi nulla.
+    setTimeout(() => {
+      if(state && !state.currentExercise && uiState.loading){
+        fetchNext(null);
+      }
+    }, 6000);
+  } else { render(); checkAchievements(); renderAchievements(); }
   setTimeout(checkReminderNow, 1500);
   window.addEventListener('online', retryPendingAnswerIfAny);
 }
