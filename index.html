@@ -567,6 +567,9 @@ const UI_TEXT = {
     langInstruction: "Scrivi SEMPRE in italiano nei campi feedback, next_exercise_it, next_exercise_hint.",
     langInstructionChat: "Scrivi SEMPRE in italiano nel campo \"note\".",
     micLabel: "🎤 pronuncia", micListening: "🎤 sto ascoltando...",
+    micStop: "⏹ tocca per fermare e invia", micTranscribing: "⏳ sto trascrivendo...",
+    audioNonChiaro: "(audio non chiaro)",
+    haiDetto: "hai detto",
     micNotSupported: "Riconoscimento vocale non disponibile su questo dispositivo/browser.",
     micNoResult: "Non ho sentito nulla, riprova.",
     pronMatch: "Pronuncia riconosciuta correttamente!",
@@ -625,6 +628,9 @@ const UI_TEXT = {
     langInstruction: "Always write in English in the feedback, next_exercise_it, next_exercise_hint fields (even though the field is named 'it', use English).",
     langInstructionChat: "Always write in English in the \"note\" field.",
     micLabel: "🎤 pronounce", micListening: "🎤 listening...",
+    micStop: "⏹ tap to stop and send", micTranscribing: "⏳ transcribing...",
+    audioNonChiaro: "(unclear audio)",
+    haiDetto: "you said",
     micNotSupported: "Speech recognition not available on this device/browser.",
     micNoResult: "Didn't catch that, try again.",
     pronMatch: "Pronunciation recognized correctly!",
@@ -691,6 +697,7 @@ REGISTRO OUTPUT: rispondi SEMPRE E SOLO con un oggetto JSON valido, struttura es
 {
   "feedback": string o null,
   "correct": boolean o null,
+  "heard_romaji": string o null (SOLO quando la risposta dello studente e' un audio allegato, non testo: scrivi qui la trascrizione in romaji di quello che hai capito abbia detto, per mostrargliela. Se non capisci nulla di comprensibile nell'audio, lascia null e imposta correct:false con un feedback che spiega che l'audio non era chiaro. Se la risposta era testo, lascia sempre null),
   "vocab_learned": array di stringhe,
   "vocab_new": array di stringhe (formato OBBLIGATORIO SEMPRE BILINGUE, indipendentemente dalla lingua scelta per feedback/esercizi: "giapponese-romaji = traduzione italiana / English translation", es. "hon = libro / book"),
   "grammar_unlocked": string o null,
@@ -705,13 +712,18 @@ let state = null;
 let apiKey = null;
 let uiState = { loading: true, error: null, showStamp: false };
 let lastAnswerSent = null;
+let lastAudioPayload = null;
 let appMode = 'exercise'; // 'exercise' | 'chat'
 let chatLoading = false;
 let soundEnabled = true;
 let audioCtx = null;
-let recognition = null;
 let isRecording = false;
-let pronResult = null; // { matched: bool, heard: string }
+let isTranscribing = false;
+let mediaRecorder = null;
+let audioChunks = [];
+let micStream = null;
+let pronResult = null; // { unsupported: bool, noResult: bool }
+
 let vocabSearchTerm = '';
 let vocabCollapsedState = { activeTags: false, learningTags: false }; // preferenza manuale dell'utente
 
@@ -880,77 +892,130 @@ function speakJapanese(text){
   }catch(e){}
 }
 
-// ===== RICONOSCIMENTO VOCALE (best-effort, supporto variabile per dispositivo) =====
-function getRecognition(){
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(!SR) return null;
-  if(!recognition){
-    recognition = new SR();
-    recognition.lang = 'ja-JP';
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
+// ===== MICROFONO: registrazione audio reale, trascritta da Gemini =====
+// Il riconoscimento vocale integrato del browser (SpeechRecognition) e' noto per
+// non funzionare in modo affidabile dentro le WebView/TWA: cattura l'audio ma la
+// trascrizione (che richiede un servizio online) spesso fallisce in silenzio.
+// Registriamo quindi l'audio grezzo e lo mandiamo a Gemini per la trascrizione,
+// riusando la stessa API key gia' in uso per correggere gli esercizi.
+
+function pickSupportedMimeType(){
+  const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4'];
+  for(const c of candidates){
+    if(window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(c)) return c;
   }
-  return recognition;
-}
-function normalizeForCompare(str){
-  return (str || '').replace(/[\s、。！？!?.,]/g, '');
+  return '';
 }
 
-// Usa il microfono come metodo alternativo per rispondere all'esercizio:
-// riconosce il parlato in giapponese e lo inserisce nella casella di risposta,
-// pronta per essere corretta esattamente come un testo digitato.
-function startVoiceInputInto(targetId){
-  const rec = getRecognition();
-  if(!rec){
+function blobToBase64(blob){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result || '';
+      const base64 = result.split(',')[1] || '';
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+function stopMicStream(){
+  if(micStream){
+    micStream.getTracks().forEach(tr => tr.stop());
+    micStream = null;
+  }
+}
+
+// Primo tocco: avvia la registrazione. Secondo tocco (stesso pulsante): la ferma
+// e manda l'audio DIRETTAMENTE come risposta (esercizio) o messaggio (chat) a
+// Gemini, che in un'unica chiamata trascrive E valuta/risponde - niente passaggio
+// intermedio di testo da rileggere e confermare.
+async function toggleVoiceInputInto(targetId){
+  if(isTranscribing) return;
+
+  if(isRecording){
+    if(mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+    return;
+  }
+
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder){
     pronResult = { unsupported: true };
     render();
     return;
   }
-  if(isRecording) return;
+
+  try{
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  }catch(e){
+    pronResult = { unsupported: true };
+    render();
+    return;
+  }
+
+  const mimeType = pickSupportedMimeType();
+  audioChunks = [];
+  try{
+    mediaRecorder = mimeType ? new MediaRecorder(micStream, { mimeType }) : new MediaRecorder(micStream);
+  }catch(e){
+    stopMicStream();
+    pronResult = { unsupported: true };
+    render();
+    return;
+  }
+
+  mediaRecorder.ondataavailable = (e) => { if(e.data && e.data.size > 0) audioChunks.push(e.data); };
+
+  mediaRecorder.onstop = async () => {
+    stopMicStream();
+    isRecording = false;
+    isTranscribing = true;
+    pronResult = null;
+    render();
+
+    const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType || mimeType || 'audio/webm' });
+    const usedMimeType = mediaRecorder.mimeType || mimeType;
+
+    if(targetId === 'chatInput'){
+      await sendChatAudioMessage(blob, usedMimeType);
+    } else {
+      await fetchNext('[audio]', false, 0, { blob, mimeType: usedMimeType });
+    }
+    isTranscribing = false;
+  };
+
   isRecording = true;
   pronResult = null;
   render();
-
-  rec.onresult = (event) => {
-    const heard = event.results[0][0].transcript;
-    isRecording = false;
-    pronResult = null;
-    render();
-    const ta = document.getElementById(targetId);
-    if(ta){
-      ta.value = heard;
-      ta.focus();
-    }
-  };
-  rec.onerror = () => {
-    pronResult = { noResult: true };
-    isRecording = false;
-    render();
-  };
-  rec.onend = () => {
-    isRecording = false;
-    render();
-  };
-  try{ rec.start(); }catch(e){ isRecording = false; pronResult = { unsupported: true }; render(); }
+  mediaRecorder.start();
 }
-function startVoiceAnswerInput(){ startVoiceInputInto('answerInput'); }
-function startVoiceChatInput(){ startVoiceInputInto('chatInput'); }
+function micButtonHtml(id){
+  let icon, label;
+  if(isTranscribing){ icon = '⏳'; label = t('micTranscribing'); }
+  else if(isRecording){ icon = '⏹'; label = t('micStop'); }
+  else { icon = '🎤'; label = t('micLabel'); }
+  return `<button class="mic-btn ${isRecording ? 'recording' : ''}" id="${id}" ${isTranscribing ? 'disabled' : ''} title="${label}" aria-label="${label}"><span class="no-italic">${icon}</span></button>`;
+}
+
+function startVoiceAnswerInput(){ toggleVoiceInputInto('answerInput'); }
+function startVoiceChatInput(){ toggleVoiceInputInto('chatInput'); }
 
 function getApiKey(){ return localStorage.getItem(APIKEY_KEY); }
 function setApiKey(k){ localStorage.setItem(APIKEY_KEY, k); apiKey = k; }
 function clearApiKey(){ localStorage.removeItem(APIKEY_KEY); apiKey = null; }
 
-async function callGeminiRaw(userMsg, systemPrompt){
+async function callGeminiRaw(userMsg, systemPrompt, extraParts){
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 25000);
   try{
+    const parts = [{ text: userMsg }, ...(extraParts || [])];
     const res = await fetch(url, {
       method:'POST',
       headers:{ 'Content-Type':'application/json', 'x-goog-api-key': apiKey },
       body: JSON.stringify({
         system_instruction: { parts: [{ text: systemPrompt }] },
-        contents: [{ role:'user', parts:[{ text: userMsg }] }],
+        contents: [{ role:'user', parts }],
         generationConfig: { responseMimeType: 'application/json', maxOutputTokens: 3000 }
       }),
       signal: controller.signal
@@ -973,8 +1038,8 @@ async function callGeminiRaw(userMsg, systemPrompt){
     clearTimeout(timeoutId);
   }
 }
-async function callGemini(userMsg){
-  return callGeminiRaw(userMsg, CURRICULUM_SYSTEM_FOR());
+async function callGemini(userMsg, extraParts){
+  return callGeminiRaw(userMsg, CURRICULUM_SYSTEM_FOR(), extraParts);
 }
 
 function CHAT_SYSTEM_FOR(){
@@ -991,11 +1056,12 @@ REGISTRO OUTPUT: rispondi SEMPRE E SOLO con un oggetto JSON valido, struttura es
 {
   "reply_jp": string (la tua risposta in caratteri giapponesi reali, hiragana/katakana/kanji),
   "reply_romaji": string (la stessa risposta traslitterata in romaji),
-  "note": string o null (una correzione breve se necessaria, nella lingua dell'interfaccia; null se non serve)
+  "note": string o null (una correzione breve se necessaria, nella lingua dell'interfaccia; null se non serve),
+  "heard_romaji": string o null (SOLO quando l'ultimo messaggio dello studente e' un audio allegato, non testo: trascrivi qui in romaji quello che hai capito abbia detto. Se non capisci nulla, lascia null e chiedi gentilmente di ripetere nel campo "note")
 }`;
 }
-async function callGeminiChat(userMsg){
-  return callGeminiRaw(userMsg, CHAT_SYSTEM_FOR());
+async function callGeminiChat(userMsg, extraParts){
+  return callGeminiRaw(userMsg, CHAT_SYSTEM_FOR(), extraParts);
 }
 
 
@@ -1043,7 +1109,7 @@ function defaultState(){
     dailyCounts: {}, dailyCorrect: {}, weeklyGoal: 20,
     history: [], chatMessages: [],
     srsData: {}, unlockedAchievements: [],
-    currentExercise: null, pendingFeedback: null, pendingCorrect: null, pendingJpAnswer: null
+    currentExercise: null, pendingFeedback: null, pendingCorrect: null, pendingJpAnswer: null, pendingHeardRomaji: null
   };
 }
 
@@ -1055,6 +1121,7 @@ function loadState(){
     if(!state.recentResults) state.recentResults = [];
     if(state.exercisesToday === undefined){ state.exercisesToday = 0; state.lastActiveDate = null; }
     if(state.pendingJpAnswer === undefined) state.pendingJpAnswer = null;
+    if(state.pendingHeardRomaji === undefined) state.pendingHeardRomaji = null;
     if(!state.activityDates) state.activityDates = [];
     if(!state.dailyCounts) state.dailyCounts = {};
     if(!state.dailyCorrect) state.dailyCorrect = {};
@@ -1356,9 +1423,10 @@ async function bootstrap(){
   window.addEventListener('online', retryPendingAnswerIfAny);
 }
 
-async function fetchNext(userAnswer, forceReviewMode, autoRetryCount){
+async function fetchNext(userAnswer, forceReviewMode, autoRetryCount, audioPayload){
   autoRetryCount = autoRetryCount || 0;
   lastAnswerSent = userAnswer;
+  lastAudioPayload = audioPayload || null;
   pronResult = null;
   uiState.loading = true; uiState.error = null; render();
 
@@ -1368,11 +1436,18 @@ async function fetchNext(userAnswer, forceReviewMode, autoRetryCount){
   };
 
   let userMsg;
+  let extraParts = [];
   if(forceReviewMode){
     const dueWords = srsDueWords(3);
     state.currentReviewWords = dueWords;
     userMsg = `Profilo studente attuale: ${JSON.stringify(profileSummary)}.
 Lo studente ha chiesto esplicitamente una sessione di RIPASSO MIRATO. Crea un esercizio che usi il più possibile queste parole specifiche (le più urgenti da ripassare): ${JSON.stringify(dueWords)}. Non introdurre vocaboli nuovi in questo turno. feedback e correct devono essere null (è un nuovo esercizio, non una correzione).`;
+  } else if(audioPayload){
+    userMsg = `Profilo studente attuale: ${JSON.stringify(profileSummary)}.
+Esercizio dato: "${state.currentExercise.it}" (hint: "${state.currentExercise.hint}")
+Lo studente ha risposto con un messaggio VOCALE, allegato come audio a questo messaggio. Ascoltalo, trascrivilo (campo "heard_romaji") e valutalo come risposta all'esercizio secondo le regole del sistema, esattamente come faresti con una risposta testuale.`;
+    const base64Audio = await blobToBase64(audioPayload.blob);
+    extraParts = [{ inline_data: { mime_type: audioPayload.mimeType || 'audio/webm', data: base64Audio } }];
   } else {
     userMsg = userAnswer === null
       ? `Primo avvio. Profilo studente: ${JSON.stringify(profileSummary)}. Dammi il primo esercizio (feedback e correct devono essere null).`
@@ -1383,9 +1458,10 @@ Valuta la risposta e dammi il prossimo esercizio secondo le regole del sistema.`
   }
 
   try{
-    const result = await callGemini(userMsg);
+    const result = await callGemini(userMsg, extraParts);
+    const effectiveAnswer = audioPayload ? (result.heard_romaji || t('audioNonChiaro')) : userAnswer;
 
-    if(userAnswer !== null){
+    if(userAnswer !== null || audioPayload){
       state.totalAttempts++;
       bumpDailyCounter();
       state.recentResults.push(!!result.correct);
@@ -1402,9 +1478,10 @@ Valuta la risposta e dammi il prossimo esercizio secondo le regole del sistema.`
       }
       state.pendingFeedback = result.feedback; state.pendingCorrect = result.correct;
       state.pendingJpAnswer = result.correct_answer_jp || null;
+      state.pendingHeardRomaji = audioPayload ? effectiveAnswer : null;
       pushHistory({
         task: state.currentExercise ? state.currentExercise.it : '',
-        answer: userAnswer,
+        answer: effectiveAnswer,
         correct: !!result.correct,
         feedback: result.feedback,
         jp: result.correct_answer_jp || null,
@@ -1421,7 +1498,7 @@ Valuta la risposta e dammi il prossimo esercizio secondo le regole del sistema.`
         state.currentReviewWords = null;
       }
     } else {
-      state.pendingFeedback = null; state.pendingCorrect = null; state.pendingJpAnswer = null;
+      state.pendingFeedback = null; state.pendingCorrect = null; state.pendingJpAnswer = null; state.pendingHeardRomaji = null;
     }
 
     if(result.vocab_new && result.vocab_new.length){
@@ -1518,6 +1595,45 @@ Rispondi al messaggio più recente dello studente, continuando la conversazione 
 
   try{
     const result = await callGeminiChat(userMsg);
+    state.chatMessages.push({
+      role: 'ai',
+      text: result.reply_romaji || '',
+      text_jp: result.reply_jp || '',
+      note: result.note || null
+    });
+    saveState();
+  }catch(e){
+    uiState.error = e.message;
+    console.error(e);
+  }
+  chatLoading = false;
+  render();
+}
+
+// Variante audio: manda la registrazione vocale direttamente come messaggio di
+// chat, senza passare da un testo intermedio da rileggere - Gemini trascrive e
+// risponde in un'unica chiamata.
+async function sendChatAudioMessage(blob, mimeType){
+  chatLoading = true;
+  render();
+
+  const profileSummary = {
+    level_label: state.levelLabel, active_vocab: state.activeVocab, learning_vocab: state.learningVocab
+  };
+  const recentTurns = state.chatMessages.slice(-6).map(m =>
+    m.role === 'user' ? `Studente: ${m.text}` : `Tu: ${m.text_jp || m.text}`
+  ).join('\n');
+  const userMsg = `Profilo studente: ${JSON.stringify(profileSummary)}.
+Conversazione recente:
+${recentTurns}
+
+L'ultimo messaggio dello studente è un audio allegato, non testo. Ascoltalo, trascrivilo (campo "heard_romaji") e rispondi continuando la conversazione naturalmente, come se lo studente avesse scritto quella trascrizione.`;
+
+  try{
+    const base64Audio = await blobToBase64(blob);
+    const extraParts = [{ inline_data: { mime_type: mimeType || 'audio/webm', data: base64Audio } }];
+    const result = await callGeminiChat(userMsg, extraParts);
+    state.chatMessages.push({ role: 'user', text: result.heard_romaji || t('audioNonChiaro') });
     state.chatMessages.push({
       role: 'ai',
       text: result.reply_romaji || '',
@@ -1744,6 +1860,7 @@ function render(){
         <span>${state.pendingCorrect ? t('corretto') : t('daCorreggere')}</span>
         ${state.pendingJpAnswer ? `<button class="speak-btn" id="speakBtn">${wrapIcons(t('ascolta'))}</button>` : ''}
       </span>
+      ${state.pendingHeardRomaji ? `<div class="hint">${wrapIcons('🎤')} ${t('haiDetto')}: <em>${escapeHtml(state.pendingHeardRomaji)}</em></div>` : ''}
       ${escapeHtml(state.pendingFeedback)}
       ${state.pendingJpAnswer ? `<div class="jp-answer">${escapeHtml(state.pendingJpAnswer)}</div>` : ''}
     </div>`;
@@ -1772,7 +1889,7 @@ function render(){
     ${renderPronResult()}
     <div class="actions">
       <button id="submitBtn">${t('correggi')}</button>
-      <button class="mic-btn ${isRecording ? 'recording' : ''}" id="micBtn" title="${t('micLabel')}" aria-label="${t('micLabel')}">${isRecording ? '<span class="no-italic">🎤...</span>' : '<span class="no-italic">🎤</span>'}</button>
+      ${micButtonHtml('micBtn')}
     </div>`;
   }
 
@@ -1785,7 +1902,10 @@ function render(){
   if(micBtn) micBtn.addEventListener('click', startVoiceAnswerInput);
 
   const retryBtn = document.getElementById('retryBtn');
-  if(retryBtn) retryBtn.addEventListener('click', () => fetchNext(lastAnswerSent));
+  if(retryBtn) retryBtn.addEventListener('click', () => {
+    if(lastAudioPayload) fetchNext(lastAnswerSent, false, 0, lastAudioPayload);
+    else fetchNext(lastAnswerSent);
+  });
 
   const reviewBtn = document.getElementById('reviewBtn');
   if(reviewBtn) reviewBtn.addEventListener('click', handleReviewMode);
@@ -1834,7 +1954,7 @@ function renderChatUI(){
   html += `<div class="answer-zone"><textarea id="chatInput" placeholder="${t('chatPlaceholder')}"></textarea></div>
   <div class="actions">
     <button id="chatSendBtn" ${chatLoading ? 'disabled' : ''}>${t('invia')}</button>
-    <button class="mic-btn ${isRecording ? 'recording' : ''}" id="chatMicBtn" title="${t('micLabel')}" aria-label="${t('micLabel')}">${isRecording ? '<span class="no-italic">🎤...</span>' : '<span class="no-italic">🎤</span>'}</button>
+    ${micButtonHtml('chatMicBtn')}
   </div>`;
 
   app.innerHTML = html;
