@@ -335,6 +335,13 @@
   .level-bar-fill.weekly{background:var(--dot-correct);}
 
   .mode-switch{display:flex;justify-content:center;gap:8px;margin-top:14px;}
+  .conn-badge{
+    display:inline-flex; align-items:center; gap:5px; margin-top:10px;
+    font-family:'Yuji Boku', 'Courier New', monospace; font-size:10px; color:var(--ink-soft);
+    letter-spacing:0.04em; opacity:0.75;
+  }
+  .conn-dot{width:7px;height:7px;border-radius:50%;background:var(--dot-correct);transition:background .3s ease;}
+  .conn-dot.offline{background:var(--dot-wrong);}
   .mode-btn{
     flex:none; background:var(--paper-2); border:1px solid var(--grid); color:var(--ink-soft);
     border-radius:20px; padding:7px 16px; font-size:11px;
@@ -493,6 +500,7 @@
       <button class="mode-btn" id="modeExerciseBtn"></button>
       <button class="mode-btn" id="modeChatBtn"></button>
     </div>
+    <div class="conn-badge" id="connBadge"></div>
   </header>
 
   <div id="stamp" class="stamp"><b id="stampNum">0</b>streak</div>
@@ -572,6 +580,7 @@ const UI_TEXT = {
     errOffline: "Connessione assente. La tua risposta è salvata e verrà inviata automaticamente appena torni online.",
     errOfflineNoPack: "Sei offline e il pacchetto di esercizi offline non è ancora stato scaricato. Apri l'app almeno una volta online per prepararlo.",
     offlineBadge: "📴 modalità offline",
+    connOnline: "online", connOffline: "offline — usa il pacchetto locale",
     retryingOffline: "Connessione tornata — invio la risposta in sospeso...",
     langInstruction: "Scrivi SEMPRE in italiano nei campi feedback, next_exercise_it, next_exercise_hint.",
     langInstructionChat: "Scrivi SEMPRE in italiano nel campo \"note\".",
@@ -641,6 +650,7 @@ const UI_TEXT = {
     errOffline: "No connection. Your answer is saved and will be sent automatically once you're back online.",
     errOfflineNoPack: "You're offline and the offline exercise pack hasn't been downloaded yet. Open the app at least once online to prepare it.",
     offlineBadge: "📴 offline mode",
+    connOnline: "online", connOffline: "offline — using local pack",
     retryingOffline: "Back online — sending your pending answer...",
     langInstruction: "Always write in English in the feedback, next_exercise_it, next_exercise_hint fields (even though the field is named 'it', use English).",
     langInstructionChat: "Always write in English in the \"note\" field.",
@@ -872,6 +882,7 @@ function setLang(lang){
   render();
 }
 function applyStaticTexts(){
+  updateConnBadge(lastKnownOnline);
   document.getElementById('subtitleText').innerHTML = t('subtitle');
   document.getElementById('menuLangTitle').innerHTML = wrapIcons(t('menuLangTitle'));
   document.getElementById('menuSoundTitle').innerHTML = wrapIcons(t('menuSoundTitle'));
@@ -1561,6 +1572,7 @@ async function bootstrap(){
   renderMenuChoices();
   updateModeButtons();
   loadOfflinePack(); // in background, non blocca l'avvio
+  startConnPolling();
   apiKey = getApiKey();
   if(!apiKey){ renderSetup(); return; }
   const had = loadState();
@@ -1590,12 +1602,74 @@ async function bootstrap(){
   window.addEventListener('online', retryPendingAnswerIfAny);
 }
 
+// Controllo veloce e VERO della connessione (non una proprieta' del browser
+// inaffidabile): una richiesta di rete reale, minima, con un timeout breve.
+// Se manca davvero la connessione, un tentativo di rete fallisce quasi subito
+// (sotto il secondo) - il timeout di 3s qui e' solo un margine di sicurezza,
+// non l'attesa tipica in caso di assenza di rete.
+async function quickIsOnline(){
+  try{
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+    await fetch('https://generativelanguage.googleapis.com/', {
+      method: 'HEAD', mode: 'no-cors', cache: 'no-store', signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    return true;
+  }catch(e){
+    return false;
+  }
+}
+
+// ===== INDICATORE DI CONNESSIONE IN TEMPO REALE =====
+// Controlla la connessione vera ogni pochi secondi mentre l'app e' visibile
+// in primo piano, aggiornando un piccolo indicatore - cosi' il cambio di stato
+// si vede anche solo guardando lo schermo, senza dover toccare nulla. Si ferma
+// quando l'app va in background, per non consumare rete/batteria inutilmente.
+let connPollInterval = null;
+let lastKnownOnline = true;
+
+function updateConnBadge(isOnline){
+  const badge = document.getElementById('connBadge');
+  if(!badge) return;
+  badge.innerHTML = `<span class="conn-dot ${isOnline ? '' : 'offline'}"></span> ${isOnline ? t('connOnline') : t('connOffline')}`;
+}
+
+async function pollConnection(){
+  const isOnline = await quickIsOnline();
+  if(isOnline !== lastKnownOnline){
+    lastKnownOnline = isOnline;
+  }
+  updateConnBadge(isOnline);
+}
+
+function startConnPolling(){
+  pollConnection(); // controllo immediato appena si avvia/torna in primo piano
+  if(connPollInterval) clearInterval(connPollInterval);
+  connPollInterval = setInterval(pollConnection, 6000);
+}
+function stopConnPolling(){
+  if(connPollInterval){ clearInterval(connPollInterval); connPollInterval = null; }
+}
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'visible') startConnPolling();
+  else stopConnPolling();
+});
+
 async function fetchNext(userAnswer, forceReviewMode, autoRetryCount, audioPayload){
   autoRetryCount = autoRetryCount || 0;
   lastAnswerSent = userAnswer;
   lastAudioPayload = audioPayload || null;
   pronResult = null;
   uiState.loading = true; uiState.error = null; render();
+
+  // Controllo veloce (non l'attesa piena di 25s): se la connessione manca
+  // davvero, lo scopriamo quasi subito, senza dover aspettare il timeout
+  // pensato per un Gemini semplicemente lento a rispondere.
+  if(!audioPayload && !(await quickIsOnline())){
+    runOfflineFlow(userAnswer);
+    return;
+  }
 
   const profileSummary = {
     level_label: state.levelLabel, active_vocab: state.activeVocab, learning_vocab: state.learningVocab,
@@ -1717,7 +1791,10 @@ Valuta la risposta e dammi il prossimo esercizio secondo le regole del sistema. 
     clearPendingAnswer();
     checkAchievements();
   }catch(e){
-    const isOffline = !navigator.onLine || e.message === 'Failed to fetch' || e.name === 'TypeError';
+    // Un timeout di 25 secondi senza risposta e' quasi sempre un vero problema
+    // di connessione (es. modalita' aereo) anche se il browser non lo segnala
+    // correttamente - meglio passare al pacchetto offline che ritentare al buio.
+    const isOffline = !navigator.onLine || e.message === 'Failed to fetch' || e.name === 'TypeError' || e.message === t('errTimeout');
     if(isOffline && audioPayload){
       // Non si puo' trascrivere un audio senza rete: nessun modo di aggirarlo offline.
       console.error(e);
