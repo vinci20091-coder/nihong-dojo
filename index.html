@@ -570,6 +570,8 @@ const UI_TEXT = {
     errServer: "Piccolo intoppo temporaneo dal server. Riprova tra un attimo.",
     errParse: "Risposta un po' confusa ricevuta, niente di grave. Riprovo automaticamente.",
     errOffline: "Connessione assente. La tua risposta è salvata e verrà inviata automaticamente appena torni online.",
+    errOfflinePackMissing: "Connessione assente e il pacchetto offline non è ancora scaricato. Connettiti almeno una volta per abilitarlo.",
+    offlineBadge: "📴 modalità offline — correzione semplificata",
     retryingOffline: "Connessione tornata — invio la risposta in sospeso...",
     langInstruction: "Scrivi SEMPRE in italiano nei campi feedback, next_exercise_it, next_exercise_hint.",
     langInstructionChat: "Scrivi SEMPRE in italiano nel campo \"note\".",
@@ -637,6 +639,8 @@ const UI_TEXT = {
     errServer: "Small temporary server hiccup. Try again in a moment.",
     errParse: "Got a slightly confused reply, nothing serious. Retrying automatically.",
     errOffline: "No connection. Your answer is saved and will be sent automatically once you're back online.",
+    errOfflinePackMissing: "No connection and the offline pack hasn't been downloaded yet. Connect at least once to enable it.",
+    offlineBadge: "📴 offline mode — simplified grading",
     retryingOffline: "Back online — sending your pending answer...",
     langInstruction: "Always write in English in the feedback, next_exercise_it, next_exercise_hint fields (even though the field is named 'it', use English).",
     langInstructionChat: "Always write in English in the \"note\" field.",
@@ -738,6 +742,7 @@ let lastAudioPayload = null;
 let appMode = 'exercise'; // 'exercise' | 'chat'
 let exerciseType = 'normal'; // 'normal' | 'boss' | 'listening' | 'reorder' | 'anime'
 let reorderPicked = []; // parole scelte finora nella modalita' "riordina la frase"
+let offlinePack = null; // il pacchetto di esercizi offline, caricato una volta in memoria
 let chatLoading = false;
 let soundEnabled = true;
 let audioCtx = null;
@@ -1143,7 +1148,7 @@ function defaultState(){
     recentResults: [], exercisesToday: 0, lastActiveDate: null, activityDates: [],
     dailyCounts: {}, dailyCorrect: {}, weeklyGoal: 20,
     history: [], chatMessages: [],
-    srsData: {}, unlockedAchievements: [],
+    srsData: {}, unlockedAchievements: [], offlineShownIds: [],
     currentExercise: null, pendingFeedback: null, pendingCorrect: null, pendingJpAnswer: null, pendingHeardRomaji: null
   };
 }
@@ -1165,6 +1170,7 @@ function loadState(){
     if(!state.chatMessages) state.chatMessages = [];
     if(!state.srsData) state.srsData = {};
     if(!state.unlockedAchievements) state.unlockedAchievements = [];
+    if(!state.offlineShownIds) state.offlineShownIds = [];
     return true;
   }
   return false;
@@ -1420,6 +1426,117 @@ async function retryPendingAnswerIfAny(){
   }
 }
 
+// ===== PACCHETTO OFFLINE =====
+// Un lotto di esercizi scritti a mano (non generati da Gemini), organizzati per
+// step grammaticale, usato quando non c'e' connessione. La correzione qui e'
+// un confronto testuale semplice, non il giudizio sfumato di un'AI - ma basta
+// per non restare mai completamente bloccati offline.
+async function loadOfflinePack(){
+  if(offlinePack) return offlinePack;
+  try{
+    const res = await fetch('./offline-pack.json');
+    if(!res.ok) return null;
+    offlinePack = await res.json();
+    return offlinePack;
+  }catch(e){
+    return null;
+  }
+}
+
+// Confronto tollerante: minuscolo, spazi puliti, punteggiatura via
+function normalizeAnswer(str){
+  return (str || '').toLowerCase().trim().replace(/[.,!?、。！？]/g, '').replace(/\s+/g, ' ');
+}
+
+// Sceglie un esercizio offline adatto: solo step grammaticali gia' sbloccati,
+// del tipo richiesto (con ripiego su "normal" se quel tipo non ha ancora
+// contenuto scritto), evitando le ripetizioni piu' recenti quando possibile.
+function pickOfflineExercise(){
+  if(!offlinePack || !offlinePack.exercises || !offlinePack.exercises.length) return null;
+  const unlockedSteps = state.grammarUnlocked ? state.grammarUnlocked.length : 1;
+  const wantedType = (exerciseType === 'boss' || exerciseType === 'anime') ? null : exerciseType; // boss/anime pescano da qualsiasi tipo scritto
+  let pool = offlinePack.exercises.filter(e => e.grammarStep <= unlockedSteps && (!wantedType || e.type === wantedType));
+  if(!pool.length) pool = offlinePack.exercises.filter(e => e.grammarStep <= unlockedSteps); // ripiego totale
+  if(!pool.length) return null;
+
+  const recent = state.offlineShownIds || [];
+  const fresh = pool.filter(e => !recent.includes(e.id));
+  const chosen = (fresh.length ? fresh : pool)[Math.floor(Math.random() * (fresh.length ? fresh.length : pool.length))];
+
+  state.offlineShownIds = [...recent, chosen.id].slice(-15);
+  return chosen;
+}
+
+// Mostra un nuovo esercizio offline (equivalente offline di fetchNext(null))
+async function offlineNextExercise(){
+  await loadOfflinePack();
+  const ex = pickOfflineExercise();
+  uiState.loading = false;
+  if(!ex){
+    uiState.error = t('errOfflinePackMissing');
+    state.currentExercise = null;
+    render();
+    return;
+  }
+  state.currentExercise = {
+    it: ex.prompt_it, hint: ex.hint,
+    listeningJp: ex.listening_jp || null,
+    reorderTokens: ex.reorder_tokens || null,
+    reorderShuffled: null,
+    type: ex.type, offline: true, offlineId: ex.id,
+    offlineAnswer: ex.answer_romaji, offlineVariants: ex.answer_variants || [],
+    offlineAnswerJp: ex.answer_jp, offlineFeedbackCorrect: ex.feedback_correct, offlineFeedbackWrong: ex.feedback_wrong
+  };
+  if(ex.reorder_tokens){
+    const shuffled = [...ex.reorder_tokens];
+    for(let i = shuffled.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    state.currentExercise.reorderShuffled = shuffled;
+  }
+  reorderPicked = [];
+  state.pendingFeedback = null; state.pendingCorrect = null; state.pendingJpAnswer = null; state.pendingHeardRomaji = null;
+  saveState();
+  render();
+}
+
+// Corregge una risposta offline (equivalente offline di fetchNext(answer))
+function offlineGradeAnswer(userAnswer){
+  const ex = state.currentExercise;
+  const given = normalizeAnswer(userAnswer);
+  const accepted = [ex.offlineAnswer, ...(ex.offlineVariants || [])].map(normalizeAnswer);
+  const correct = accepted.includes(given);
+
+  state.totalAttempts++;
+  bumpDailyCounter();
+  state.recentResults.push(correct);
+  if(state.recentResults.length > 10) state.recentResults.shift();
+  if(correct){
+    state.totalCorrect++; state.streak++;
+    if(state.streak > state.bestStreak) state.bestStreak = state.streak;
+    uiState.showStamp = true;
+    playCorrectSound();
+  } else {
+    state.streak = 0;
+    playWrongSound();
+  }
+  state.pendingFeedback = correct ? ex.offlineFeedbackCorrect : ex.offlineFeedbackWrong;
+  state.pendingCorrect = correct;
+  state.pendingJpAnswer = ex.offlineAnswerJp || null;
+  state.pendingHeardRomaji = null;
+  pushHistory({
+    task: ex.it, answer: userAnswer, correct, feedback: state.pendingFeedback,
+    jp: ex.offlineAnswerJp || null, date: new Date().toISOString()
+  });
+  const todayKey = new Date().toDateString();
+  state.dailyCorrect[todayKey] = (state.dailyCorrect[todayKey] || 0) + (correct ? 1 : 0);
+  saveState();
+  checkAchievements();
+  uiState.loading = false;
+  render();
+}
+
 async function bootstrap(){
   loadSoundPref();
   loadThemePref();
@@ -1457,6 +1574,7 @@ async function bootstrap(){
   } else { uiState.loading = false; render(); checkAchievements(); renderAchievements(); }
   setTimeout(checkReminderNow, 1500);
   window.addEventListener('online', retryPendingAnswerIfAny);
+  if(navigator.onLine) loadOfflinePack(); // precarico in background, non blocca l'avvio
 }
 
 async function fetchNext(userAnswer, forceReviewMode, autoRetryCount, audioPayload){
@@ -1464,6 +1582,27 @@ async function fetchNext(userAnswer, forceReviewMode, autoRetryCount, audioPaylo
   lastAnswerSent = userAnswer;
   lastAudioPayload = audioPayload || null;
   pronResult = null;
+
+  // Se non c'e' connessione, l'audio non e' utilizzabile offline (serve sempre
+  // Gemini), ma testo e ripasso mirato possono passare dal pacchetto offline.
+  if(!navigator.onLine && !audioPayload){
+    if(userAnswer !== null && state.currentExercise && state.currentExercise.offline){
+      offlineGradeAnswer(userAnswer);
+      return;
+    }
+    if(userAnswer === null){
+      uiState.loading = true; render();
+      await offlineNextExercise();
+      return;
+    }
+    // Risposta a un esercizio che era stato preso online: la salviamo per dopo,
+    // non possiamo correggerla senza Gemini ne' senza i dati del pacchetto offline.
+    savePendingAnswer(userAnswer);
+    uiState.error = t('errOffline');
+    uiState.loading = false; render();
+    return;
+  }
+
   uiState.loading = true; uiState.error = null; render();
 
   const profileSummary = {
@@ -1960,6 +2099,7 @@ function render(){
     }
 
     const ex = state.currentExercise;
+    if(ex.offline) html += `<div class="hint" style="margin-bottom:8px;">${wrapIcons(t('offlineBadge'))}</div>`;
     html += `<div class="card">
       <div class="eyebrow">${t('compito')}</div>
       <div class="task-it">${escapeHtml(ex.it)}</div>
