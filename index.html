@@ -571,7 +571,8 @@ const UI_TEXT = {
     ripassa: "ripassa queste parole se puoi",
     corretto: "正 corretto", daCorreggere: "× da correggere", ascolta: "🔊 ascolta",
     confirmReset: "Sicuro di voler ricominciare da zero? Perderai tutto il progresso salvato.",
-    errQuota: "Quota giornaliera gratuita di Gemini esaurita. Il limite si resetta a mezzanotte, ora del Pacifico (Google). Riprova più tardi.",
+    errQuota: "Quota giornaliera gratuita di Gemini esaurita. Il limite si resetta a mezzanotte, ora del Pacifico (Google). Passa offline per continuare ad esercitarti nel frattempo!",
+    switchOfflineBtn: "📴 passa a esercizi offline",
     errApiKey: 'API key non valida. Tocca "cambia api key" e reinseriscila con attenzione.',
     errTimeout: "Nessuna risposta da Gemini dopo 25 secondi. Controlla la connessione e riprova.",
     errEmpty: "Risposta vuota da Gemini (possibile blocco safety filter). Riprova.",
@@ -641,7 +642,8 @@ const UI_TEXT = {
     ripassa: "review these words if you can",
     corretto: "正 correct", daCorreggere: "× needs work", ascolta: "🔊 listen",
     confirmReset: "Sure you want to start over? You'll lose all saved progress.",
-    errQuota: "Free daily Gemini quota exceeded. The limit resets at midnight Pacific Time (Google). Try again later.",
+    errQuota: "Free daily Gemini quota exceeded. The limit resets at midnight Pacific Time (Google). Switch offline to keep practicing in the meantime!",
+    switchOfflineBtn: "📴 switch to offline exercises",
     errApiKey: 'Invalid API key. Tap "change api key" and re-enter it carefully.',
     errTimeout: "No response from Gemini after 25 seconds. Check your connection and retry.",
     errEmpty: "Empty response from Gemini (possible safety filter block). Retry.",
@@ -1410,11 +1412,11 @@ function runOfflineFlow(userAnswer){
     checkAchievements();
   } else if(userAnswer !== null){
     // Esercizio in corso generato online, ma la rete e' saltata proprio ora:
-    // stesso comportamento di sempre, salviamo e reinviamo al ritorno della connessione.
+    // salviamo la risposta per reinviarla al ritorno della connessione, MA
+    // procediamo comunque a dare un esercizio offline nuovo, per non lasciare
+    // lo studente fermo sulla stessa schermata in attesa.
     savePendingAnswer(userAnswer);
-    uiState.error = t('errOffline');
-    uiState.loading = false; render();
-    return;
+    showToast(t('errOffline'));
   }
 
   const next = pickOfflineExercise();
@@ -2137,7 +2139,12 @@ function render(){
   }
 
   let html = '';
-  if(uiState.error) html += `<div class="err-box">${escapeHtml(uiState.error)}</div>`;
+  if(uiState.error){
+    html += `<div class="err-box">${escapeHtml(uiState.error)}</div>`;
+    if(uiState.error === t('errQuota')){
+      html += `<div class="actions" style="margin-bottom:14px;"><button id="switchOfflineBtn" style="flex:1;">${wrapIcons(t('switchOfflineBtn'))}</button></div>`;
+    }
+  }
 
   html += `<div class="mode-switch" style="margin-top:0; margin-bottom:14px; flex-wrap:wrap;">
     <button class="mode-btn ${exerciseType === 'normal' ? 'active-choice' : ''}" id="exTypeNormalBtn">${wrapIcons(t('exTypeNormal'))}</button>
@@ -2232,6 +2239,14 @@ function render(){
   if(retryBtn) retryBtn.addEventListener('click', () => {
     if(lastAudioPayload) fetchNext(lastAnswerSent, false, 0, lastAudioPayload);
     else fetchNext(lastAnswerSent);
+  });
+
+  const switchOfflineBtn = document.getElementById('switchOfflineBtn');
+  if(switchOfflineBtn) switchOfflineBtn.addEventListener('click', async () => {
+    uiState.error = null;
+    uiState.loading = true; render();
+    await loadOfflinePack();
+    runOfflineFlow(null);
   });
 
   const reviewBtn = document.getElementById('reviewBtn');
