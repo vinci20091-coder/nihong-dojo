@@ -882,11 +882,18 @@ function setSound(on){
 
 function loadLangPref(){ uiLang = localStorage.getItem(LANG_KEY) || 'it'; }
 function setLang(lang){
+  if(lang === uiLang) return;
   uiLang = lang;
   localStorage.setItem(LANG_KEY, uiLang);
   applyStaticTexts();
   renderMenuChoices();
   render();
+  // Il testo dell'esercizio corrente e' gia' fissato nella lingua di prima
+  // (arriva da Gemini, non si "ritraduce" da solo) - ne chiediamo uno nuovo
+  // nella lingua giusta, cosi' non resti disallineato.
+  if(appMode === 'exercise' && state && state.currentExercise && !uiState.loading){
+    fetchNext(null);
+  }
 }
 function applyStaticTexts(){
   updateConnBadge(lastKnownOnline);
