@@ -501,6 +501,7 @@
       <button class="mode-btn" id="modeChatBtn"></button>
     </div>
     <div class="conn-badge" id="connBadge"></div>
+    <button class="mode-btn" id="forceOfflineBtn" style="margin-top:8px; font-size:10px; padding:5px 12px;"></button>
   </header>
 
   <div id="stamp" class="stamp"><b id="stampNum">0</b>streak</div>
@@ -542,6 +543,7 @@ const APIKEY_KEY = 'nihongo-gemini-key';
 const SOUND_KEY = 'nihongo-sound-enabled';
 const THEME_KEY = 'nihongo-theme';
 const TEXTSIZE_KEY = 'nihongo-text-size';
+const FORCE_OFFLINE_KEY = 'nihongo-force-offline';
 const LANG_KEY = 'nihongo-ui-lang';
 const MODEL = 'gemini-3.5-flash';
 
@@ -582,6 +584,7 @@ const UI_TEXT = {
     errOfflineNoPack: "Sei offline e il pacchetto di esercizi offline non è ancora stato scaricato. Apri l'app almeno una volta online per prepararlo.",
     offlineBadge: "📴 modalità offline",
     connOnline: "online", connOffline: "offline — usa il pacchetto locale",
+    forceOfflineOff: "📴 usa esercizi offline", forceOfflineOn: "🌐 torna a Gemini online",
     retryingOffline: "Connessione tornata — invio la risposta in sospeso...",
     langInstruction: "Scrivi SEMPRE in italiano nei campi feedback, next_exercise_it, next_exercise_hint.",
     langInstructionChat: "Scrivi SEMPRE in italiano nel campo \"note\".",
@@ -653,6 +656,7 @@ const UI_TEXT = {
     errOfflineNoPack: "You're offline and the offline exercise pack hasn't been downloaded yet. Open the app at least once online to prepare it.",
     offlineBadge: "📴 offline mode",
     connOnline: "online", connOffline: "offline — using local pack",
+    forceOfflineOff: "📴 use offline exercises", forceOfflineOn: "🌐 back to Gemini online",
     retryingOffline: "Back online — sending your pending answer...",
     langInstruction: "Always write in English in the feedback, next_exercise_it, next_exercise_hint fields (even though the field is named 'it', use English).",
     langInstructionChat: "Always write in English in the \"note\" field.",
@@ -750,6 +754,7 @@ let state = null;
 let apiKey = null;
 let uiState = { loading: true, error: null, showStamp: false };
 let offlinePack = null; // caricato al bootstrap, resta in memoria per l'uso offline
+let forceOfflineMode = false; // scelta manuale dell'utente, indipendente dalla connessione reale
 let lastAnswerSent = null;
 let lastAudioPayload = null;
 let appMode = 'exercise'; // 'exercise' | 'chat'
@@ -885,6 +890,7 @@ function setLang(lang){
 }
 function applyStaticTexts(){
   updateConnBadge(lastKnownOnline);
+  updateForceOfflineBtn();
   document.getElementById('subtitleText').innerHTML = t('subtitle');
   document.getElementById('menuLangTitle').innerHTML = wrapIcons(t('menuLangTitle'));
   document.getElementById('menuSoundTitle').innerHTML = wrapIcons(t('menuSoundTitle'));
@@ -1570,6 +1576,7 @@ async function bootstrap(){
   loadLangPref();
   loadModePref();
   loadExTypePref();
+  loadForceOfflinePref();
   applyStaticTexts();
   renderMenuChoices();
   updateModeButtons();
@@ -1637,12 +1644,43 @@ function updateConnBadge(isOnline){
   badge.innerHTML = `<span class="conn-dot ${isOnline ? '' : 'offline'}"></span> ${isOnline ? t('connOnline') : t('connOffline')}`;
 }
 
+function loadForceOfflinePref(){
+  forceOfflineMode = localStorage.getItem(FORCE_OFFLINE_KEY) === '1';
+}
+async function toggleForceOffline(){
+  forceOfflineMode = !forceOfflineMode;
+  localStorage.setItem(FORCE_OFFLINE_KEY, forceOfflineMode ? '1' : '0');
+  updateForceOfflineBtn();
+  if(appMode === 'exercise'){
+    if(forceOfflineMode) await runOfflineFlow(null);
+    else await fetchNext(null);
+  }
+}
+function updateForceOfflineBtn(){
+  const btn = document.getElementById('forceOfflineBtn');
+  if(!btn) return;
+  btn.classList.toggle('active-choice', forceOfflineMode);
+  btn.innerHTML = wrapIcons(forceOfflineMode ? t('forceOfflineOn') : t('forceOfflineOff'));
+}
+
 async function pollConnection(){
   const isOnline = await quickIsOnline();
-  if(isOnline !== lastKnownOnline){
-    lastKnownOnline = isOnline;
-  }
+  const wasTransition = isOnline !== lastKnownOnline;
+  if(wasTransition) lastKnownOnline = isOnline;
   updateConnBadge(isOnline);
+
+  // Se lo stato e' appena cambiato mentre siamo fermi su un esercizio, facciamo
+  // scattare subito il cambio anche li' - non solo sul pallino colorato -
+  // cosi' non serve nessuna azione manuale per "far avvenire" il passaggio.
+  // Non interrompiamo una richiesta gia' in corso.
+  if(wasTransition && !forceOfflineMode && appMode === 'exercise' && state && state.currentExercise && !uiState.loading){
+    const showingOffline = !!state.currentExercise.offline;
+    if(!isOnline && !showingOffline){
+      runOfflineFlow(null); // eravamo su un esercizio online, ora siamo offline
+    } else if(isOnline && showingOffline){
+      fetchNext(null); // eravamo su un esercizio offline, la connessione e' tornata
+    }
+  }
 }
 
 function startConnPolling(){
@@ -1668,6 +1706,12 @@ async function fetchNext(userAnswer, forceReviewMode, autoRetryCount, audioPaylo
   // Controllo veloce (non l'attesa piena di 25s): se la connessione manca
   // davvero, lo scopriamo quasi subito, senza dover aspettare il timeout
   // pensato per un Gemini semplicemente lento a rispondere.
+  // Prima l'interruttore manuale (scelta esplicita, sempre rispettata se
+  // attivo), poi il controllo veloce della connessione reale.
+  if(forceOfflineMode && !audioPayload){
+    runOfflineFlow(userAnswer);
+    return;
+  }
   if(!audioPayload && !(await quickIsOnline())){
     runOfflineFlow(userAnswer);
     return;
@@ -2499,6 +2543,7 @@ document.getElementById('textSizeXlargeBtn').addEventListener('click', () => set
 document.getElementById('editWeeklyGoalBtn').addEventListener('click', handleEditWeeklyGoal);
 document.getElementById('modeExerciseBtn').addEventListener('click', () => setMode('exercise'));
 document.getElementById('modeChatBtn').addEventListener('click', () => setMode('chat'));
+document.getElementById('forceOfflineBtn').addEventListener('click', toggleForceOffline);
 document.getElementById('shareBtn').addEventListener('click', handleShare);
 document.getElementById('exportBtn').addEventListener('click', handleExport);
 document.getElementById('importBtn').addEventListener('click', handleImportClick);
