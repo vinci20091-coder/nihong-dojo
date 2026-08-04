@@ -1410,9 +1410,9 @@ function runOfflineFlow(userAnswer){
       state.streak = 0;
       playWrongSound();
     }
-    state.pendingFeedback = state.currentExercise.offlineData.feedback_correct && wasCorrect
-      ? state.currentExercise.offlineData.feedback_correct
-      : state.currentExercise.offlineData.feedback_wrong;
+    const fbCorrect = uiLang === 'en' ? (state.currentExercise.offlineData.feedback_correct_en || state.currentExercise.offlineData.feedback_correct_it) : state.currentExercise.offlineData.feedback_correct_it;
+    const fbWrong = uiLang === 'en' ? (state.currentExercise.offlineData.feedback_wrong_en || state.currentExercise.offlineData.feedback_wrong_it) : state.currentExercise.offlineData.feedback_wrong_it;
+    state.pendingFeedback = wasCorrect ? fbCorrect : fbWrong;
     state.pendingCorrect = wasCorrect;
     state.pendingJpAnswer = state.currentExercise.offlineData.answer_jp || null;
     state.pendingHeardRomaji = null;
@@ -1439,7 +1439,12 @@ function runOfflineFlow(userAnswer){
     return;
   }
   state.currentExercise = {
-    it: next.prompt_it, hint: next.hint,
+    it: (next.type === 'listening')
+      ? t('listeningInstruction')
+      : (uiLang === 'en' ? (next.prompt_en || next.prompt_it) : next.prompt_it),
+    hint: (next.type === 'listening')
+      ? null
+      : (uiLang === 'en' ? (next.hint_en || next.hint_it) : next.hint_it),
     listeningJp: next.listening_jp || null,
     reorderTokens: next.reorder_tokens || null,
     reorderShuffled: next.reorderShuffled || null,
@@ -1626,7 +1631,7 @@ async function bootstrap(){
 async function quickIsOnline(){
   try{
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000);
+    const timeoutId = setTimeout(() => controller.abort(), 1500);
     await fetch('https://generativelanguage.googleapis.com/', {
       method: 'HEAD', mode: 'no-cors', cache: 'no-store', signal: controller.signal
     });
