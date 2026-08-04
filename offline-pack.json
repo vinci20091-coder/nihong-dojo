@@ -1,0 +1,564 @@
+{
+  "version": 1,
+  "generatedNote": "Primo lotto - step 1 (schema base wa/o/-masu). Estendibile in futuro con altri step.",
+  "exercises": [
+    {
+      "id": "s1-001",
+      "grammarStep": 1,
+      "type": "normal",
+      "vocab": [
+        "watashi",
+        "tabemasu",
+        "gohan"
+      ],
+      "prompt_it": "Di' che mangi il riso/pasto.",
+      "hint": "io + riso/pasto + mangio",
+      "answer_romaji": "watashi wa gohan o tabemasu",
+      "answer_variants": [
+        "watashi wa gohan wo tabemasu"
+      ],
+      "answer_jp": "私はご飯を食べます",
+      "listening_jp": null,
+      "reorder_tokens": null,
+      "feedback_correct": "正解！ Struttura corretta.",
+      "feedback_wrong": "Quasi. La forma corretta è: \"watashi wa gohan o tabemasu\"."
+    },
+    {
+      "id": "s1-002",
+      "grammarStep": 1,
+      "type": "reorder",
+      "vocab": [
+        "watashi",
+        "tabemasu",
+        "gohan"
+      ],
+      "prompt_it": "Racconta cosa stai per mangiare: il riso.",
+      "hint": "io + riso/pasto + mangio",
+      "answer_romaji": "watashi wa gohan o tabemasu",
+      "answer_variants": [
+        "watashi wa gohan wo tabemasu"
+      ],
+      "answer_jp": "私はご飯を食べます",
+      "listening_jp": null,
+      "reorder_tokens": [
+        "watashi",
+        "wa",
+        "gohan",
+        "o",
+        "tabemasu"
+      ],
+      "feedback_correct": "正解！ Struttura corretta.",
+      "feedback_wrong": "Quasi. La forma corretta è: \"watashi wa gohan o tabemasu\"."
+    },
+    {
+      "id": "s1-003",
+      "grammarStep": 1,
+      "type": "normal",
+      "vocab": [
+        "watashi",
+        "nomimasu",
+        "mizu"
+      ],
+      "prompt_it": "Di' che bevi l'acqua.",
+      "hint": "io + acqua + bevo",
+      "answer_romaji": "watashi wa mizu o nomimasu",
+      "answer_variants": [
+        "watashi wa mizu wo nomimasu"
+      ],
+      "answer_jp": "私は水を飲みます",
+      "listening_jp": null,
+      "reorder_tokens": null,
+      "feedback_correct": "正解！ Struttura corretta.",
+      "feedback_wrong": "Quasi. La forma corretta è: \"watashi wa mizu o nomimasu\"."
+    },
+    {
+      "id": "s1-004",
+      "grammarStep": 1,
+      "type": "listening",
+      "vocab": [
+        "watashi",
+        "nomimasu",
+        "mizu"
+      ],
+      "prompt_it": "Ascolta la frase e scrivi in romaji cosa hai capito.",
+      "hint": null,
+      "answer_romaji": "watashi wa mizu o nomimasu",
+      "answer_variants": [
+        "watashi wa mizu wo nomimasu"
+      ],
+      "answer_jp": "私は水を飲みます",
+      "listening_jp": "私は水を飲みます",
+      "reorder_tokens": null,
+      "feedback_correct": "正解！ Struttura corretta.",
+      "feedback_wrong": "Quasi. La forma corretta è: \"watashi wa mizu o nomimasu\"."
+    },
+    {
+      "id": "s1-005",
+      "grammarStep": 1,
+      "type": "normal",
+      "vocab": [
+        "watashi",
+        "yomimasu",
+        "hon"
+      ],
+      "prompt_it": "Di' che leggi un libro.",
+      "hint": "io + libro + leggo",
+      "answer_romaji": "watashi wa hon o yomimasu",
+      "answer_variants": [
+        "watashi wa hon wo yomimasu"
+      ],
+      "answer_jp": "私は本を読みます",
+      "listening_jp": null,
+      "reorder_tokens": null,
+      "feedback_correct": "正解！ Struttura corretta.",
+      "feedback_wrong": "Quasi. La forma corretta è: \"watashi wa hon o yomimasu\"."
+    },
+    {
+      "id": "s1-006",
+      "grammarStep": 1,
+      "type": "reorder",
+      "vocab": [
+        "watashi",
+        "yomimasu",
+        "hon"
+      ],
+      "prompt_it": "Racconta cosa leggi: un libro.",
+      "hint": "io + libro + leggo",
+      "answer_romaji": "watashi wa hon o yomimasu",
+      "answer_variants": [
+        "watashi wa hon wo yomimasu"
+      ],
+      "answer_jp": "私は本を読みます",
+      "listening_jp": null,
+      "reorder_tokens": [
+        "watashi",
+        "wa",
+        "hon",
+        "o",
+        "yomimasu"
+      ],
+      "feedback_correct": "正解！ Struttura corretta.",
+      "feedback_wrong": "Quasi. La forma corretta è: \"watashi wa hon o yomimasu\"."
+    },
+    {
+      "id": "s1-007",
+      "grammarStep": 1,
+      "type": "normal",
+      "vocab": [
+        "watashi",
+        "mimasu",
+        "anime"
+      ],
+      "prompt_it": "Di' che guardi un anime.",
+      "hint": "io + anime + guardo",
+      "answer_romaji": "watashi wa anime o mimasu",
+      "answer_variants": [
+        "watashi wa anime wo mimasu"
+      ],
+      "answer_jp": "私はアニメを見ます",
+      "listening_jp": null,
+      "reorder_tokens": null,
+      "feedback_correct": "正解！ Struttura corretta.",
+      "feedback_wrong": "Quasi. La forma corretta è: \"watashi wa anime o mimasu\"."
+    },
+    {
+      "id": "s1-008",
+      "grammarStep": 1,
+      "type": "reorder",
+      "vocab": [
+        "watashi",
+        "mimasu",
+        "anime"
+      ],
+      "prompt_it": "Spiega cosa guardi: un anime.",
+      "hint": "io + anime + guardo",
+      "answer_romaji": "watashi wa anime o mimasu",
+      "answer_variants": [
+        "watashi wa anime wo mimasu"
+      ],
+      "answer_jp": "私はアニメを見ます",
+      "listening_jp": null,
+      "reorder_tokens": [
+        "watashi",
+        "wa",
+        "anime",
+        "o",
+        "mimasu"
+      ],
+      "feedback_correct": "正解！ Struttura corretta.",
+      "feedback_wrong": "Quasi. La forma corretta è: \"watashi wa anime o mimasu\"."
+    },
+    {
+      "id": "s1-009",
+      "grammarStep": 1,
+      "type": "normal",
+      "vocab": [
+        "watashi",
+        "kikimasu",
+        "ongaku"
+      ],
+      "prompt_it": "Di' che ascolti la musica.",
+      "hint": "io + musica + ascolto",
+      "answer_romaji": "watashi wa ongaku o kikimasu",
+      "answer_variants": [
+        "watashi wa ongaku wo kikimasu"
+      ],
+      "answer_jp": "私は音楽を聞きます",
+      "listening_jp": null,
+      "reorder_tokens": null,
+      "feedback_correct": "正解！ Struttura corretta.",
+      "feedback_wrong": "Quasi. La forma corretta è: \"watashi wa ongaku o kikimasu\"."
+    },
+    {
+      "id": "s1-010",
+      "grammarStep": 1,
+      "type": "listening",
+      "vocab": [
+        "watashi",
+        "kikimasu",
+        "ongaku"
+      ],
+      "prompt_it": "Ascolta la frase e scrivi in romaji cosa hai capito.",
+      "hint": null,
+      "answer_romaji": "watashi wa ongaku o kikimasu",
+      "answer_variants": [
+        "watashi wa ongaku wo kikimasu"
+      ],
+      "answer_jp": "私は音楽を聞きます",
+      "listening_jp": "私は音楽を聞きます",
+      "reorder_tokens": null,
+      "feedback_correct": "正解！ Struttura corretta.",
+      "feedback_wrong": "Quasi. La forma corretta è: \"watashi wa ongaku o kikimasu\"."
+    },
+    {
+      "id": "s1-011",
+      "grammarStep": 1,
+      "type": "normal",
+      "vocab": [
+        "watashi",
+        "kaimasu",
+        "enpitsu"
+      ],
+      "prompt_it": "Di' che compri una matita.",
+      "hint": "io + matita + compro",
+      "answer_romaji": "watashi wa enpitsu o kaimasu",
+      "answer_variants": [
+        "watashi wa enpitsu wo kaimasu"
+      ],
+      "answer_jp": "私は鉛筆を買います",
+      "listening_jp": null,
+      "reorder_tokens": null,
+      "feedback_correct": "正解！ Struttura corretta.",
+      "feedback_wrong": "Quasi. La forma corretta è: \"watashi wa enpitsu o kaimasu\"."
+    },
+    {
+      "id": "s1-012",
+      "grammarStep": 1,
+      "type": "reorder",
+      "vocab": [
+        "watashi",
+        "kaimasu",
+        "enpitsu"
+      ],
+      "prompt_it": "Spiega cosa compri: una matita.",
+      "hint": "io + matita + compro",
+      "answer_romaji": "watashi wa enpitsu o kaimasu",
+      "answer_variants": [
+        "watashi wa enpitsu wo kaimasu"
+      ],
+      "answer_jp": "私は鉛筆を買います",
+      "listening_jp": null,
+      "reorder_tokens": [
+        "watashi",
+        "wa",
+        "enpitsu",
+        "o",
+        "kaimasu"
+      ],
+      "feedback_correct": "正解！ Struttura corretta.",
+      "feedback_wrong": "Quasi. La forma corretta è: \"watashi wa enpitsu o kaimasu\"."
+    },
+    {
+      "id": "s1-013",
+      "grammarStep": 1,
+      "type": "normal",
+      "vocab": [
+        "watashi",
+        "kakimasu",
+        "tegami"
+      ],
+      "prompt_it": "Di' che scrivi una lettera.",
+      "hint": "io + lettera + scrivo",
+      "answer_romaji": "watashi wa tegami o kakimasu",
+      "answer_variants": [
+        "watashi wa tegami wo kakimasu"
+      ],
+      "answer_jp": "私は手紙を書きます",
+      "listening_jp": null,
+      "reorder_tokens": null,
+      "feedback_correct": "正解！ Struttura corretta.",
+      "feedback_wrong": "Quasi. La forma corretta è: \"watashi wa tegami o kakimasu\"."
+    },
+    {
+      "id": "s1-014",
+      "grammarStep": 1,
+      "type": "reorder",
+      "vocab": [
+        "watashi",
+        "kakimasu",
+        "tegami"
+      ],
+      "prompt_it": "Racconta cosa scrivi: una lettera.",
+      "hint": "io + lettera + scrivo",
+      "answer_romaji": "watashi wa tegami o kakimasu",
+      "answer_variants": [
+        "watashi wa tegami wo kakimasu"
+      ],
+      "answer_jp": "私は手紙を書きます",
+      "listening_jp": null,
+      "reorder_tokens": [
+        "watashi",
+        "wa",
+        "tegami",
+        "o",
+        "kakimasu"
+      ],
+      "feedback_correct": "正解！ Struttura corretta.",
+      "feedback_wrong": "Quasi. La forma corretta è: \"watashi wa tegami o kakimasu\"."
+    },
+    {
+      "id": "s1-015",
+      "grammarStep": 1,
+      "type": "normal",
+      "vocab": [
+        "watashi",
+        "tsukurimasu",
+        "gohan"
+      ],
+      "prompt_it": "Di' che prepari il pasto.",
+      "hint": "io + riso/pasto + preparo",
+      "answer_romaji": "watashi wa gohan o tsukurimasu",
+      "answer_variants": [
+        "watashi wa gohan wo tsukurimasu"
+      ],
+      "answer_jp": "私はご飯を作ります",
+      "listening_jp": null,
+      "reorder_tokens": null,
+      "feedback_correct": "正解！ Struttura corretta.",
+      "feedback_wrong": "Quasi. La forma corretta è: \"watashi wa gohan o tsukurimasu\"."
+    },
+    {
+      "id": "s1-016",
+      "grammarStep": 1,
+      "type": "listening",
+      "vocab": [
+        "watashi",
+        "tsukurimasu",
+        "gohan"
+      ],
+      "prompt_it": "Ascolta la frase e scrivi in romaji cosa hai capito.",
+      "hint": null,
+      "answer_romaji": "watashi wa gohan o tsukurimasu",
+      "answer_variants": [
+        "watashi wa gohan wo tsukurimasu"
+      ],
+      "answer_jp": "私はご飯を作ります",
+      "listening_jp": "私はご飯を作ります",
+      "reorder_tokens": null,
+      "feedback_correct": "正解！ Struttura corretta.",
+      "feedback_wrong": "Quasi. La forma corretta è: \"watashi wa gohan o tsukurimasu\"."
+    },
+    {
+      "id": "s1-017",
+      "grammarStep": 1,
+      "type": "normal",
+      "vocab": [
+        "watashi",
+        "torimasu",
+        "shashin"
+      ],
+      "prompt_it": "Di' che scatti una foto.",
+      "hint": "io + foto + scatto/prendo",
+      "answer_romaji": "watashi wa shashin o torimasu",
+      "answer_variants": [
+        "watashi wa shashin wo torimasu"
+      ],
+      "answer_jp": "私は写真を撮ります",
+      "listening_jp": null,
+      "reorder_tokens": null,
+      "feedback_correct": "正解！ Struttura corretta.",
+      "feedback_wrong": "Quasi. La forma corretta è: \"watashi wa shashin o torimasu\"."
+    },
+    {
+      "id": "s1-018",
+      "grammarStep": 1,
+      "type": "reorder",
+      "vocab": [
+        "watashi",
+        "torimasu",
+        "shashin"
+      ],
+      "prompt_it": "Racconta cosa scatti: una foto.",
+      "hint": "io + foto + scatto/prendo",
+      "answer_romaji": "watashi wa shashin o torimasu",
+      "answer_variants": [
+        "watashi wa shashin wo torimasu"
+      ],
+      "answer_jp": "私は写真を撮ります",
+      "listening_jp": null,
+      "reorder_tokens": [
+        "watashi",
+        "wa",
+        "shashin",
+        "o",
+        "torimasu"
+      ],
+      "feedback_correct": "正解！ Struttura corretta.",
+      "feedback_wrong": "Quasi. La forma corretta è: \"watashi wa shashin o torimasu\"."
+    },
+    {
+      "id": "s1-019",
+      "grammarStep": 1,
+      "type": "normal",
+      "vocab": [
+        "watashi",
+        "okurimasu",
+        "tegami"
+      ],
+      "prompt_it": "Di' che mandi una lettera.",
+      "hint": "io + lettera + mando",
+      "answer_romaji": "watashi wa tegami o okurimasu",
+      "answer_variants": [
+        "watashi wa tegami wo okurimasu"
+      ],
+      "answer_jp": "私は手紙を送ります",
+      "listening_jp": null,
+      "reorder_tokens": null,
+      "feedback_correct": "正解！ Struttura corretta.",
+      "feedback_wrong": "Quasi. La forma corretta è: \"watashi wa tegami o okurimasu\"."
+    },
+    {
+      "id": "s1-020",
+      "grammarStep": 1,
+      "type": "reorder",
+      "vocab": [
+        "watashi",
+        "okurimasu",
+        "tegami"
+      ],
+      "prompt_it": "Spiega cosa mandi: una lettera.",
+      "hint": "io + lettera + mando",
+      "answer_romaji": "watashi wa tegami o okurimasu",
+      "answer_variants": [
+        "watashi wa tegami wo okurimasu"
+      ],
+      "answer_jp": "私は手紙を送ります",
+      "listening_jp": null,
+      "reorder_tokens": [
+        "watashi",
+        "wa",
+        "tegami",
+        "o",
+        "okurimasu"
+      ],
+      "feedback_correct": "正解！ Struttura corretta.",
+      "feedback_wrong": "Quasi. La forma corretta è: \"watashi wa tegami o okurimasu\"."
+    },
+    {
+      "id": "s1-021",
+      "grammarStep": 1,
+      "type": "normal",
+      "vocab": [
+        "watashi",
+        "moraimasu",
+        "purezento"
+      ],
+      "prompt_it": "Di' che ricevi un regalo.",
+      "hint": "io + regalo + ricevo",
+      "answer_romaji": "watashi wa purezento o moraimasu",
+      "answer_variants": [
+        "watashi wa purezento wo moraimasu"
+      ],
+      "answer_jp": "私はプレゼントをもらいます",
+      "listening_jp": null,
+      "reorder_tokens": null,
+      "feedback_correct": "正解！ Struttura corretta.",
+      "feedback_wrong": "Quasi. La forma corretta è: \"watashi wa purezento o moraimasu\"."
+    },
+    {
+      "id": "s1-022",
+      "grammarStep": 1,
+      "type": "reorder",
+      "vocab": [
+        "watashi",
+        "moraimasu",
+        "purezento"
+      ],
+      "prompt_it": "Racconta cosa ricevi: un regalo.",
+      "hint": "io + regalo + ricevo",
+      "answer_romaji": "watashi wa purezento o moraimasu",
+      "answer_variants": [
+        "watashi wa purezento wo moraimasu"
+      ],
+      "answer_jp": "私はプレゼントをもらいます",
+      "listening_jp": null,
+      "reorder_tokens": [
+        "watashi",
+        "wa",
+        "purezento",
+        "o",
+        "moraimasu"
+      ],
+      "feedback_correct": "正解！ Struttura corretta.",
+      "feedback_wrong": "Quasi. La forma corretta è: \"watashi wa purezento o moraimasu\"."
+    },
+    {
+      "id": "s1-023",
+      "grammarStep": 1,
+      "type": "normal",
+      "vocab": [
+        "watashi",
+        "machimasu",
+        "tomodachi"
+      ],
+      "prompt_it": "Di' che aspetti un amico.",
+      "hint": "io + amico/amica + aspetto",
+      "answer_romaji": "watashi wa tomodachi o machimasu",
+      "answer_variants": [
+        "watashi wa tomodachi wo machimasu"
+      ],
+      "answer_jp": "私は友達を待ちます",
+      "listening_jp": null,
+      "reorder_tokens": null,
+      "feedback_correct": "正解！ Struttura corretta.",
+      "feedback_wrong": "Quasi. La forma corretta è: \"watashi wa tomodachi o machimasu\"."
+    },
+    {
+      "id": "s1-024",
+      "grammarStep": 1,
+      "type": "reorder",
+      "vocab": [
+        "watashi",
+        "machimasu",
+        "tomodachi"
+      ],
+      "prompt_it": "Spiega chi aspetti: un amico.",
+      "hint": "io + amico/amica + aspetto",
+      "answer_romaji": "watashi wa tomodachi o machimasu",
+      "answer_variants": [
+        "watashi wa tomodachi wo machimasu"
+      ],
+      "answer_jp": "私は友達を待ちます",
+      "listening_jp": null,
+      "reorder_tokens": [
+        "watashi",
+        "wa",
+        "tomodachi",
+        "o",
+        "machimasu"
+      ],
+      "feedback_correct": "正解！ Struttura corretta.",
+      "feedback_wrong": "Quasi. La forma corretta è: \"watashi wa tomodachi o machimasu\"."
+    }
+  ]
+}
