@@ -529,6 +529,7 @@
 const STATE_KEY = 'nihongo-profile-v1';
 const PENDING_KEY = 'nihongo-pending-answer';
 const MODE_KEY = 'nihongo-app-mode';
+const EXTYPE_KEY = 'nihongo-exercise-type';
 const APIKEY_KEY = 'nihongo-gemini-key';
 const SOUND_KEY = 'nihongo-sound-enabled';
 const THEME_KEY = 'nihongo-theme';
@@ -550,6 +551,12 @@ const UI_TEXT = {
     vocabAttivo: "vocab attivo", precisione: "precisione", strutture: "strutture sbloccate",
     compito: "compito", scriviQui: "scrivi qui in romaji...", correggi: "correggi",
     modeExerciseBtn: "📝 esercizi", modeChatBtn: "💬 conversazione",
+    exTypeNormal: "normale", exTypeBoss: "⚔️ boss battle", exTypeListening: "👂 ascolto",
+    exTypeReorder: "🧩 riordina", exTypeAnime: "🎌 scenario anime",
+    listeningInstruction: "Ascolta e scrivi in romaji cosa hai capito",
+    listeningPlay: "🔊 ascolta la frase",
+    reorderInstruction: "Tocca le parole nell'ordine giusto",
+    reorderReset: "↺ ricomincia",
     chatVuota: "Scrivi qualcosa in giapponese (o italiano) per iniziare a chiacchierare!",
     chatPlaceholder: "scrivi in romaji o italiano...", invia: "invia",
     thinking: "l'insegnante sta pensando", bloccato: "bloccato? riprova",
@@ -611,6 +618,12 @@ const UI_TEXT = {
     vocabAttivo: "active vocab", precisione: "accuracy", strutture: "structures unlocked",
     compito: "task", scriviQui: "write here in romaji...", correggi: "check",
     modeExerciseBtn: "📝 exercises", modeChatBtn: "💬 conversation",
+    exTypeNormal: "normal", exTypeBoss: "⚔️ boss battle", exTypeListening: "👂 listening",
+    exTypeReorder: "🧩 reorder", exTypeAnime: "🎌 anime scenario",
+    listeningInstruction: "Listen and write in romaji what you understood",
+    listeningPlay: "🔊 play the sentence",
+    reorderInstruction: "Tap the words in the right order",
+    reorderReset: "↺ restart",
     chatVuota: "Write something in Japanese (or English) to start chatting!",
     chatPlaceholder: "write in romaji or English...", invia: "send",
     thinking: "the teacher is thinking", bloccato: "stuck? retry",
@@ -693,6 +706,13 @@ VOCABOLARIO — crescita verso B2/C1:
 - Man mano che il livello sale, proponi anche mini-dialoghi (3-4 scambi in sequenza).
 - Quando proponi un esercizio, se possibile riusa almeno una parola tra quelle "in apprendimento" per rinforzarla.
 
+TIPI DI ESERCIZIO — il messaggio dell'utente ti dira' quale usare per il prossimo esercizio da proporre. IMPORTANTE: qualunque tipo venga richiesto, la grammatica e il vocabolario usati devono SEMPRE rispettare rigorosamente solo cio' che e' gia' sbloccato dallo studente (grammar_unlocked/active_vocab/learning_vocab), MAI andare oltre:
+- "normale": il comportamento standard descritto sopra.
+- "boss_battle": pesca liberamente e a caso tra TUTTE le strutture grammaticali gia' sbloccate (non solo l'ultima), mescolandole nello stesso esercizio quando ha senso, per un ripasso misto piu' impegnativo.
+- "ascolto": e' un esercizio di COMPRENSIONE, non produzione. Genera una frase giapponese completa (che lo studente ascoltera' via sintesi vocale, non la leggera' mai scritta) e mettila nel campo "listening_jp". Il campo "next_exercise_it" in questo caso deve essere solo l'istruzione generica "Ascolta l'audio e scrivi in romaji cosa hai capito", MAI la frase stessa o la sua traduzione (altrimenti lo studente barerebbe). Lo studente rispondera' scrivendo in romaji cosa ha capito dall'ascolto.
+- "riordina": genera una frase giapponese target normale (come per un esercizio "normale"), ma AGGIUNGI il campo "reorder_tokens": un array delle parole/unita' della frase corretta in romaji, nell'ordine corretto (es. ["watashi", "wa", "gakusei", "desu"]). Lo studente le vedra' mescolate e dovra' toccarle nell'ordine giusto per ricostruire la frase.
+- "anime": come "normale", ma ambienta l'esercizio in un contesto ispirato ad anime/manga/vita da studente giapponese (konbini, scuola, dojo, festival, dormitorio) invece di frasi neutre da libro di testo.
+
 REGISTRO OUTPUT: rispondi SEMPRE E SOLO con un oggetto JSON valido, struttura esatta:
 {
   "feedback": string o null,
@@ -704,7 +724,9 @@ REGISTRO OUTPUT: rispondi SEMPRE E SOLO con un oggetto JSON valido, struttura es
   "level_label": string,
   "next_exercise_it": string,
   "next_exercise_hint": string,
-  "correct_answer_jp": string o null (versione giapponese reale della risposta CORRETTA appena data dallo studente, MAI del nuovo esercizio; null al primo turno)
+  "correct_answer_jp": string o null (versione giapponese reale della risposta CORRETTA appena data dallo studente, MAI del nuovo esercizio; null al primo turno),
+  "listening_jp": string o null (SOLO se il tipo richiesto per il prossimo esercizio e' "ascolto": la frase giapponese reale da ascoltare. In tutti gli altri casi null),
+  "reorder_tokens": array di stringhe o null (SOLO se il tipo richiesto per il prossimo esercizio e' "riordina": le parole della frase corretta in romaji, nell'ordine giusto. In tutti gli altri casi null)
 }`;
 }
 
@@ -714,6 +736,8 @@ let uiState = { loading: true, error: null, showStamp: false };
 let lastAnswerSent = null;
 let lastAudioPayload = null;
 let appMode = 'exercise'; // 'exercise' | 'chat'
+let exerciseType = 'normal'; // 'normal' | 'boss' | 'listening' | 'reorder' | 'anime'
+let reorderPicked = []; // parole scelte finora nella modalita' "riordina la frase"
 let chatLoading = false;
 let soundEnabled = true;
 let audioCtx = null;
@@ -814,6 +838,17 @@ function updateModeButtons(){
   const chatBtn = document.getElementById('modeChatBtn');
   if(exBtn) exBtn.classList.toggle('active-choice', appMode === 'exercise');
   if(chatBtn) chatBtn.classList.toggle('active-choice', appMode === 'chat');
+}
+
+function loadExTypePref(){
+  exerciseType = localStorage.getItem(EXTYPE_KEY) || 'normal';
+}
+function setExerciseType(type){
+  if(type === exerciseType) return;
+  exerciseType = type;
+  localStorage.setItem(EXTYPE_KEY, type);
+  reorderPicked = [];
+  fetchNext(null); // nuovo esercizio adatto al tipo appena scelto
 }
 
 function setSound(on){
@@ -1391,6 +1426,7 @@ async function bootstrap(){
   loadTextSizePref();
   loadLangPref();
   loadModePref();
+  loadExTypePref();
   applyStaticTexts();
   renderMenuChoices();
   updateModeButtons();
@@ -1435,26 +1471,35 @@ async function fetchNext(userAnswer, forceReviewMode, autoRetryCount, audioPaylo
     grammar_unlocked: state.grammarUnlocked, streak: state.streak, total_correct: state.totalCorrect, total_attempts: state.totalAttempts
   };
 
+  const EXTYPE_LABELS = { normal: 'normale', boss: 'boss_battle', listening: 'ascolto', reorder: 'riordina', anime: 'anime' };
+  const nextTypeInstruction = `Per il PROSSIMO esercizio da proporre in questo turno, usa il tipo: "${EXTYPE_LABELS[exerciseType] || 'normale'}".`;
+
+  // Se l'esercizio a cui si sta rispondendo era di ascolto, la frase da usare come
+  // contesto per la correzione e' quella ascoltata (listeningJp), non l'istruzione generica.
+  const currentExerciseContext = (state.currentExercise && state.currentExercise.listeningJp)
+    ? `Esercizio dato: era un esercizio di ASCOLTO. La frase giapponese ascoltata dallo studente era: "${state.currentExercise.listeningJp}"`
+    : `Esercizio dato: "${state.currentExercise ? state.currentExercise.it : ''}" (hint: "${state.currentExercise ? state.currentExercise.hint : ''}")`;
+
   let userMsg;
   let extraParts = [];
   if(forceReviewMode){
     const dueWords = srsDueWords(3);
     state.currentReviewWords = dueWords;
     userMsg = `Profilo studente attuale: ${JSON.stringify(profileSummary)}.
-Lo studente ha chiesto esplicitamente una sessione di RIPASSO MIRATO. Crea un esercizio che usi il più possibile queste parole specifiche (le più urgenti da ripassare): ${JSON.stringify(dueWords)}. Non introdurre vocaboli nuovi in questo turno. feedback e correct devono essere null (è un nuovo esercizio, non una correzione).`;
+Lo studente ha chiesto esplicitamente una sessione di RIPASSO MIRATO. Crea un esercizio che usi il più possibile queste parole specifiche (le più urgenti da ripassare): ${JSON.stringify(dueWords)}. Non introdurre vocaboli nuovi in questo turno. feedback e correct devono essere null (è un nuovo esercizio, non una correzione). ${nextTypeInstruction}`;
   } else if(audioPayload){
     userMsg = `Profilo studente attuale: ${JSON.stringify(profileSummary)}.
-Esercizio dato: "${state.currentExercise.it}" (hint: "${state.currentExercise.hint}")
-Lo studente ha risposto con un messaggio VOCALE, allegato come audio a questo messaggio. Ascoltalo, trascrivilo (campo "heard_romaji") e valutalo come risposta all'esercizio secondo le regole del sistema, esattamente come faresti con una risposta testuale.`;
+${currentExerciseContext}
+Lo studente ha risposto con un messaggio VOCALE, allegato come audio a questo messaggio. Ascoltalo, trascrivilo (campo "heard_romaji") e valutalo come risposta all'esercizio secondo le regole del sistema, esattamente come faresti con una risposta testuale. ${nextTypeInstruction}`;
     const base64Audio = await blobToBase64(audioPayload.blob);
     extraParts = [{ inline_data: { mime_type: audioPayload.mimeType || 'audio/webm', data: base64Audio } }];
   } else {
     userMsg = userAnswer === null
-      ? `Primo avvio. Profilo studente: ${JSON.stringify(profileSummary)}. Dammi il primo esercizio (feedback e correct devono essere null).`
+      ? `Primo avvio. Profilo studente: ${JSON.stringify(profileSummary)}. Dammi il primo esercizio (feedback e correct devono essere null). ${nextTypeInstruction}`
       : `Profilo studente attuale: ${JSON.stringify(profileSummary)}.
-Esercizio dato: "${state.currentExercise.it}" (hint: "${state.currentExercise.hint}")
+${currentExerciseContext}
 Risposta dello studente in romaji: "${userAnswer}"
-Valuta la risposta e dammi il prossimo esercizio secondo le regole del sistema.`;
+Valuta la risposta e dammi il prossimo esercizio secondo le regole del sistema. ${nextTypeInstruction}`;
   }
 
   try{
@@ -1521,7 +1566,22 @@ Valuta la risposta e dammi il prossimo esercizio secondo le regole del sistema.`
     }
     if(result.level_label) state.levelLabel = result.level_label;
 
-    state.currentExercise = { it: result.next_exercise_it, hint: result.next_exercise_hint };
+    state.currentExercise = {
+      it: result.next_exercise_it, hint: result.next_exercise_hint,
+      listeningJp: result.listening_jp || null,
+      reorderTokens: (result.reorder_tokens && result.reorder_tokens.length) ? result.reorder_tokens : null,
+      reorderShuffled: null,
+      type: exerciseType
+    };
+    if(state.currentExercise.reorderTokens){
+      const shuffled = [...state.currentExercise.reorderTokens];
+      for(let i = shuffled.length - 1; i > 0; i--){
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      state.currentExercise.reorderShuffled = shuffled;
+    }
+    reorderPicked = [];
     saveState();
     clearPendingAnswer();
     checkAchievements();
@@ -1562,6 +1622,16 @@ async function handleSubmit(){
   const ta = document.getElementById('answerInput');
   const val = ta.value.trim();
   if(!val) return;
+  playTapSound();
+  uiState.showStamp = false;
+  await fetchNext(val);
+}
+
+async function handleReorderSubmit(){
+  ensureAudioUnlocked();
+  if(!reorderPicked.length) return;
+  const ex = state.currentExercise;
+  const val = reorderPicked.map(i => ex.reorderShuffled[i]).join(' ');
   playTapSound();
   uiState.showStamp = false;
   await fetchNext(val);
@@ -1854,6 +1924,14 @@ function render(){
   let html = '';
   if(uiState.error) html += `<div class="err-box">${escapeHtml(uiState.error)}</div>`;
 
+  html += `<div class="mode-switch" style="margin-top:0; margin-bottom:14px; flex-wrap:wrap;">
+    <button class="mode-btn ${exerciseType === 'normal' ? 'active-choice' : ''}" id="exTypeNormalBtn">${wrapIcons(t('exTypeNormal'))}</button>
+    <button class="mode-btn ${exerciseType === 'boss' ? 'active-choice' : ''}" id="exTypeBossBtn">${wrapIcons(t('exTypeBoss'))}</button>
+    <button class="mode-btn ${exerciseType === 'listening' ? 'active-choice' : ''}" id="exTypeListeningBtn">${wrapIcons(t('exTypeListening'))}</button>
+    <button class="mode-btn ${exerciseType === 'reorder' ? 'active-choice' : ''}" id="exTypeReorderBtn">${wrapIcons(t('exTypeReorder'))}</button>
+    <button class="mode-btn ${exerciseType === 'anime' ? 'active-choice' : ''}" id="exTypeAnimeBtn">${wrapIcons(t('exTypeAnime'))}</button>
+  </div>`;
+
   if(state.pendingFeedback){
     html += `<div class="feedback ${state.pendingCorrect ? '' : 'wrong'}">
       <span class="verdict">
@@ -1880,17 +1958,48 @@ function render(){
         ${suggested.map(w => `<span class="suggest-word">${escapeHtml(w.split('=')[0].trim())}</span>`).join('')}
       </div>`;
     }
+
+    const ex = state.currentExercise;
     html += `<div class="card">
       <div class="eyebrow">${t('compito')}</div>
-      <div class="task-it">${escapeHtml(state.currentExercise.it)}</div>
-      ${state.currentExercise.hint ? `<div class="hint">${escapeHtml(state.currentExercise.hint)}</div>` : ''}
-    </div>
-    <div class="answer-zone"><textarea id="answerInput" placeholder="${t('scriviQui')}"></textarea></div>
-    ${renderPronResult()}
-    <div class="actions">
-      <button id="submitBtn">${t('correggi')}</button>
-      ${micButtonHtml('micBtn')}
+      <div class="task-it">${escapeHtml(ex.it)}</div>
+      ${ex.hint ? `<div class="hint">${escapeHtml(ex.hint)}</div>` : ''}
     </div>`;
+
+    if(ex.type === 'listening' && ex.listeningJp){
+      html += `<div class="answer-zone" style="text-align:center;">
+        <button class="review-btn" id="listeningPlayBtn" style="width:100%;">${wrapIcons(t('listeningPlay'))}</button>
+      </div>
+      <div class="answer-zone"><textarea id="answerInput" placeholder="${t('scriviQui')}"></textarea></div>
+      ${renderPronResult()}
+      <div class="actions">
+        <button id="submitBtn">${t('correggi')}</button>
+        ${micButtonHtml('micBtn')}
+      </div>`;
+    } else if(ex.type === 'reorder' && ex.reorderShuffled){
+      const builtSentence = reorderPicked.map(i => ex.reorderShuffled[i]).join(' ');
+      html += `<div class="suggest-panel" style="border-style:solid;">
+        <div class="label">${t('reorderInstruction')}</div>
+        <div style="min-height:32px; font-size:16px; margin-bottom:10px;" id="reorderBuilt">${escapeHtml(builtSentence) || '&nbsp;'}</div>
+        <div id="reorderChips">
+          ${ex.reorderShuffled.map((word, i) => {
+            const picked = reorderPicked.includes(i);
+            return `<button class="tag" data-reorder-idx="${i}" ${picked ? 'disabled' : ''} style="font-size:15px;padding:6px 12px;margin:3px;${picked ? 'opacity:0.3;' : ''}">${escapeHtml(word)}</button>`;
+          }).join('')}
+        </div>
+      </div>
+      <div class="actions">
+        <button id="submitBtn" ${reorderPicked.length === 0 ? 'disabled' : ''}>${t('correggi')}</button>
+        <button class="secondary" id="reorderResetBtn">${t('reorderReset')}</button>
+      </div>`;
+    } else {
+      html += `<div class="answer-zone"><textarea id="answerInput" placeholder="${t('scriviQui')}"></textarea></div>
+      ${renderPronResult()}
+      <div class="actions">
+        <button id="submitBtn">${t('correggi')}</button>
+        ${micButtonHtml('micBtn')}
+      </div>`;
+    }
   }
 
   app.innerHTML = html;
@@ -1910,12 +2019,40 @@ function render(){
   const reviewBtn = document.getElementById('reviewBtn');
   if(reviewBtn) reviewBtn.addEventListener('click', handleReviewMode);
 
+  document.getElementById('exTypeNormalBtn')?.addEventListener('click', () => setExerciseType('normal'));
+  document.getElementById('exTypeBossBtn')?.addEventListener('click', () => setExerciseType('boss'));
+  document.getElementById('exTypeListeningBtn')?.addEventListener('click', () => setExerciseType('listening'));
+  document.getElementById('exTypeReorderBtn')?.addEventListener('click', () => setExerciseType('reorder'));
+  document.getElementById('exTypeAnimeBtn')?.addEventListener('click', () => setExerciseType('anime'));
+
+  const listeningPlayBtn = document.getElementById('listeningPlayBtn');
+  if(listeningPlayBtn) listeningPlayBtn.addEventListener('click', () => speakJapanese(state.currentExercise.listeningJp));
+
+  document.querySelectorAll('[data-reorder-idx]').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const idx = parseInt(chip.getAttribute('data-reorder-idx'), 10);
+      if(!reorderPicked.includes(idx)){
+        reorderPicked.push(idx);
+        render();
+      }
+    });
+  });
+  const reorderResetBtn = document.getElementById('reorderResetBtn');
+  if(reorderResetBtn) reorderResetBtn.addEventListener('click', () => { reorderPicked = []; render(); });
+
   const submitBtn = document.getElementById('submitBtn');
   if(submitBtn){
-    submitBtn.addEventListener('click', handleSubmit);
-    const ta = document.getElementById('answerInput');
-    ta.addEventListener('keydown', (e) => { if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); handleSubmit(); } });
-    ta.focus();
+    const isReorder = state.currentExercise && state.currentExercise.type === 'reorder' && state.currentExercise.reorderShuffled;
+    if(isReorder){
+      submitBtn.addEventListener('click', handleReorderSubmit);
+    } else {
+      submitBtn.addEventListener('click', handleSubmit);
+      const ta = document.getElementById('answerInput');
+      if(ta){
+        ta.addEventListener('keydown', (e) => { if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); handleSubmit(); } });
+        ta.focus();
+      }
+    }
   }
 
   renderVocabTags();
