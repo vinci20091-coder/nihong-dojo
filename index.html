@@ -546,6 +546,25 @@ const TEXTSIZE_KEY = 'nihongo-text-size';
 const FORCE_OFFLINE_KEY = 'nihongo-force-offline';
 const LANG_KEY = 'nihongo-ui-lang';
 const MODEL = 'gemini-3.5-flash';
+const QUOTA_ERROR_MARKER = 'QUOTA_EXCEEDED'; // marcatore interno stabile, mai mostrato: il testo vero (con conto alla rovescia) si calcola al momento di mostrarlo
+
+// Ore e minuti mancanti alla mezzanotte di Los Angeles (dove si resetta la
+// quota gratuita di Gemini), calcolati al momento, non un valore fisso.
+function pacificResetCountdown(){
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Los_Angeles', hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: false
+  });
+  const parts = fmt.formatToParts(new Date());
+  const get = (type) => parseInt(parts.find(p => p.type === type).value, 10) || 0;
+  const h = get('hour') % 24, m = get('minute'), s = get('second');
+  let secondsLeft = (24*3600) - (h*3600 + m*60 + s);
+  if(secondsLeft <= 0) secondsLeft += 24*3600;
+  return { hours: Math.floor(secondsLeft / 3600), minutes: Math.floor((secondsLeft % 3600) / 60) };
+}
+function quotaErrorText(){
+  const { hours, minutes } = pacificResetCountdown();
+  return t('errQuota') + ' ' + t('errQuotaCountdown').replace('{h}', hours).replace('{m}', minutes);
+}
 
 const UI_TEXT = {
   it: {
@@ -573,7 +592,8 @@ const UI_TEXT = {
     ripassa: "ripassa queste parole se puoi",
     corretto: "正 corretto", daCorreggere: "× da correggere", ascolta: "🔊 ascolta",
     confirmReset: "Sicuro di voler ricominciare da zero? Perderai tutto il progresso salvato.",
-    errQuota: "Quota giornaliera gratuita di Gemini esaurita. Il limite si resetta a mezzanotte, ora del Pacifico (Google). Passa offline per continuare ad esercitarti nel frattempo!",
+    errQuota: "Quota giornaliera gratuita di Gemini esaurita. Passa offline per continuare ad esercitarti nel frattempo!",
+    errQuotaCountdown: "Si resetta tra {h}h {m}min.",
     switchOfflineBtn: "📴 passa a esercizi offline",
     errApiKey: 'API key non valida. Tocca "cambia api key" e reinseriscila con attenzione.',
     errTimeout: "Nessuna risposta da Gemini dopo 25 secondi. Controlla la connessione e riprova.",
@@ -646,7 +666,8 @@ const UI_TEXT = {
     ripassa: "review these words if you can",
     corretto: "正 correct", daCorreggere: "× needs work", ascolta: "🔊 listen",
     confirmReset: "Sure you want to start over? You'll lose all saved progress.",
-    errQuota: "Free daily Gemini quota exceeded. The limit resets at midnight Pacific Time (Google). Switch offline to keep practicing in the meantime!",
+    errQuota: "Free daily Gemini quota exceeded. Switch offline to keep practicing in the meantime!",
+    errQuotaCountdown: "Resets in {h}h {m}min.",
     switchOfflineBtn: "📴 switch to offline exercises",
     errApiKey: 'Invalid API key. Tap "change api key" and re-enter it carefully.',
     errTimeout: "No response from Gemini after 25 seconds. Check your connection and retry.",
@@ -1091,7 +1112,7 @@ async function callGeminiRaw(userMsg, systemPrompt, extraParts){
     if(!res.ok){
       const errText = await res.text();
       console.error('Errore API Gemini (grezzo):', res.status, errText);
-      if(res.status === 429) throw new Error(t('errQuota'));
+      if(res.status === 429) throw new Error(QUOTA_ERROR_MARKER);
       if(res.status === 401) throw new Error(t('errApiKey'));
       throw new Error(t('errServer'));
     }
@@ -1891,7 +1912,7 @@ Valuta la risposta e dammi il prossimo esercizio secondo le regole del sistema. 
       // caricamento sia quando si corregge una risposta gia' data. Esclude gli
       // errori che un ritentativo non risolverebbe comunque (quota, api key, offline).
       const isTransient = e.message === t('errParse') || e.message === t('errServer') || e.message === t('errTimeout') || e.message === t('errEmpty');
-      const nonRetryable = e.message === t('errQuota') || e.message === t('errApiKey');
+      const nonRetryable = e.message === QUOTA_ERROR_MARKER || e.message === t('errApiKey');
       // Al primo avvio (nessun esercizio ancora mostrato) ritentiamo su QUALSIASI
       // errore tranne quota/api-key, perché non c'e' nulla da perdere: l'utente
       // non ha ancora visto niente, meglio un altro tentativo silenzioso che un
@@ -1903,7 +1924,7 @@ Valuta la risposta e dammi il prossimo esercizio secondo le regole del sistema. 
         setTimeout(() => { fetchNext(userAnswer, forceReviewMode, autoRetryCount + 1); }, 1500);
         return;
       }
-      if(e.message === t('errQuota')){
+      if(e.message === QUOTA_ERROR_MARKER){
         // La quota e' ancora esaurita: invece di lasciare l'utente bloccato con
         // un errore secco, torniamo da sole in modalita' offline (coerente con
         // il pulsante "passa a esercizi offline" che fa la stessa cosa). Il
@@ -1911,7 +1932,7 @@ Valuta la risposta e dammi il prossimo esercizio secondo le regole del sistema. 
         forceOfflineMode = true;
         localStorage.setItem(FORCE_OFFLINE_KEY, '1');
         updateForceOfflineBtn();
-        uiState.error = t('errQuota');
+        uiState.error = QUOTA_ERROR_MARKER;
         await loadOfflinePack();
         runOfflineFlow(null);
         return;
@@ -2228,8 +2249,8 @@ function render(){
 
   let html = '';
   if(uiState.error){
-    html += `<div class="err-box">${escapeHtml(uiState.error)}</div>`;
-    if(uiState.error === t('errQuota') && !forceOfflineMode){
+    html += `<div class="err-box">${escapeHtml(uiState.error === QUOTA_ERROR_MARKER ? quotaErrorText() : uiState.error)}</div>`;
+    if(uiState.error === QUOTA_ERROR_MARKER && !forceOfflineMode){
       html += `<div class="actions" style="margin-bottom:14px;"><button id="switchOfflineBtn" style="flex:1;">${wrapIcons(t('switchOfflineBtn'))}</button></div>`;
     }
   }
@@ -2395,7 +2416,7 @@ function renderChatUI(){
   if(!app) return;
 
   let html = '';
-  if(uiState.error) html += `<div class="err-box">${escapeHtml(uiState.error)}</div>`;
+  if(uiState.error) html += `<div class="err-box">${escapeHtml(uiState.error === QUOTA_ERROR_MARKER ? quotaErrorText() : uiState.error)}</div>`;
 
   html += `<div class="chat-wrap" id="chatWrap">`;
   if(!state.chatMessages || !state.chatMessages.length){
