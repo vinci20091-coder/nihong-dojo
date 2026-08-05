@@ -1668,10 +1668,10 @@ async function bootstrap(){
 // Se manca davvero la connessione, un tentativo di rete fallisce quasi subito
 // (sotto il secondo) - il timeout di 3s qui e' solo un margine di sicurezza,
 // non l'attesa tipica in caso di assenza di rete.
-async function quickIsOnline(){
+async function pingOnce(timeoutMs){
   try{
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 1500);
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     await fetch('https://generativelanguage.googleapis.com/', {
       method: 'HEAD', mode: 'no-cors', cache: 'no-store', signal: controller.signal
     });
@@ -1680,6 +1680,13 @@ async function quickIsOnline(){
   }catch(e){
     return false;
   }
+}
+// Un solo tentativo fallito puo' essere un blip momentaneo di una rete debole
+// (4G ballerino, non una vera assenza di connessione) - diamo una seconda
+// possibilita' prima di concludere che siamo davvero offline.
+async function quickIsOnline(){
+  if(await pingOnce(1500)) return true;
+  return await pingOnce(1500);
 }
 
 // ===== INDICATORE DI CONNESSIONE IN TEMPO REALE =====
