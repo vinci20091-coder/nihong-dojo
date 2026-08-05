@@ -1884,6 +1884,18 @@ Valuta la risposta e dammi il prossimo esercizio secondo le regole del sistema. 
         setTimeout(() => { fetchNext(userAnswer, forceReviewMode, autoRetryCount + 1); }, 1500);
         return;
       }
+      if(e.message === t('errQuota')){
+        // La quota e' ancora esaurita: invece di lasciare l'utente bloccato con
+        // un errore secco, torniamo da sole in modalita' offline (coerente con
+        // il pulsante "passa a esercizi offline" che fa la stessa cosa).
+        forceOfflineMode = true;
+        localStorage.setItem(FORCE_OFFLINE_KEY, '1');
+        updateForceOfflineBtn();
+        showToast(t('errQuota'));
+        await loadOfflinePack();
+        runOfflineFlow(null);
+        return;
+      }
       uiState.error = e.message;
     }
   }
