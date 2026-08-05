@@ -2299,6 +2299,12 @@ function render(){
 
   const switchOfflineBtn = document.getElementById('switchOfflineBtn');
   if(switchOfflineBtn) switchOfflineBtn.addEventListener('click', async () => {
+    // Attiva anche l'interruttore permanente (non solo un esercizio offline al
+    // volo), cosi' i prossimi tentativi (es. cambio lingua) sanno di restare
+    // offline invece di ritentare Gemini e sbattere di nuovo contro la quota.
+    forceOfflineMode = true;
+    localStorage.setItem(FORCE_OFFLINE_KEY, '1');
+    updateForceOfflineBtn();
     uiState.error = null;
     uiState.loading = true; render();
     await loadOfflinePack();
