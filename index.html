@@ -451,7 +451,7 @@
         <div class="label collapsible" id="labelLearning" data-target="learningTags">
           <span class="collapse-arrow" id="arrowLearning">▾</span> in apprendimento
         </div>
-        <div class="vocab-tags" id="learningTags"></div>
+        <div class="vocab-tags scrollable" id="learningTags"></div>
       </div>
     </div>
   </div>
@@ -544,6 +544,7 @@ const SOUND_KEY = 'nihongo-sound-enabled';
 const THEME_KEY = 'nihongo-theme';
 const TEXTSIZE_KEY = 'nihongo-text-size';
 const FORCE_OFFLINE_KEY = 'nihongo-force-offline';
+const VOCAB_COLLAPSE_KEY = 'nihongo-vocab-collapse';
 const LANG_KEY = 'nihongo-ui-lang';
 const MODEL = 'gemini-3.5-flash';
 const QUOTA_ERROR_MARKER = 'QUOTA_EXCEEDED'; // marcatore interno stabile, mai mostrato: il testo vero (con conto alla rovescia) si calcola al momento di mostrarlo
@@ -794,7 +795,15 @@ let micStream = null;
 let pronResult = null; // { unsupported: bool, noResult: bool }
 
 let vocabSearchTerm = '';
-let vocabCollapsedState = { activeTags: false, learningTags: false }; // preferenza manuale dell'utente
+function loadVocabCollapsePref(){
+  try{
+    const raw = localStorage.getItem(VOCAB_COLLAPSE_KEY);
+    return raw ? JSON.parse(raw) : { activeTags: false, learningTags: false };
+  }catch(e){
+    return { activeTags: false, learningTags: false };
+  }
+}
+let vocabCollapsedState = loadVocabCollapsePref(); // preferenza dell'utente, ora persistente tra le sessioni
 
 function getAudioCtx(){
   if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -2637,9 +2646,45 @@ document.querySelectorAll('.label.collapsible').forEach(label => {
   label.addEventListener('click', () => {
     const targetId = label.getAttribute('data-target');
     vocabCollapsedState[targetId] = !vocabCollapsedState[targetId];
+    localStorage.setItem(VOCAB_COLLAPSE_KEY, JSON.stringify(vocabCollapsedState));
     applyVocabCollapseVisual();
   });
 });
+
+// ===== SWIPE PER APRIRE/CHIUDERE IL MENU =====
+// Apertura: solo se il gesto parte vicino al bordo sinistro dello schermo,
+// per non entrare in conflitto con lo scroll normale del contenuto (tipo
+// scorrere le liste di vocabolario o il testo di un esercizio).
+// Chiusura: uno swipe verso sinistra ovunque, mentre il menu e' gia' aperto.
+let swipeStartX = null, swipeStartY = null, swipeStartTime = null, swipeStartedAtEdge = false;
+document.addEventListener('touchstart', (e) => {
+  if(e.touches.length !== 1) return;
+  swipeStartX = e.touches[0].clientX;
+  swipeStartY = e.touches[0].clientY;
+  swipeStartTime = Date.now();
+  swipeStartedAtEdge = swipeStartX < 24;
+}, { passive: true });
+
+document.addEventListener('touchend', (e) => {
+  if(swipeStartX === null) return;
+  const touch = e.changedTouches[0];
+  const deltaX = touch.clientX - swipeStartX;
+  const deltaY = touch.clientY - swipeStartY;
+  const elapsed = Date.now() - swipeStartTime;
+  const wasAtEdge = swipeStartedAtEdge;
+  swipeStartX = null;
+
+  // Deve essere un gesto orizzontale deciso e abbastanza rapido, non uno
+  // scroll verticale lento o un tocco qualsiasi.
+  if(Math.abs(deltaX) < 55 || Math.abs(deltaX) < Math.abs(deltaY) * 1.4 || elapsed > 600) return;
+
+  const menuOpen = document.getElementById('sideMenu').classList.contains('show');
+  if(!menuOpen && deltaX > 0 && wasAtEdge){
+    openMenu();
+  } else if(menuOpen && deltaX < 0){
+    closeMenu();
+  }
+}, { passive: true });
 
 bootstrap();
 
