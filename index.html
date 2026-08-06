@@ -2652,17 +2652,14 @@ document.querySelectorAll('.label.collapsible').forEach(label => {
 });
 
 // ===== SWIPE PER APRIRE/CHIUDERE IL MENU =====
-// Apertura: solo se il gesto parte vicino al bordo sinistro dello schermo,
-// per non entrare in conflitto con lo scroll normale del contenuto (tipo
-// scorrere le liste di vocabolario o il testo di un esercizio).
-// Chiusura: uno swipe verso sinistra ovunque, mentre il menu e' gia' aperto.
-let swipeStartX = null, swipeStartY = null, swipeStartTime = null, swipeStartedAtEdge = false;
+// Apertura e chiusura a schermo intero: uno swipe deciso a destra apre,
+// uno a sinistra chiude, da qualsiasi punto dello schermo.
+let swipeStartX = null, swipeStartY = null, swipeStartTime = null;
 document.addEventListener('touchstart', (e) => {
   if(e.touches.length !== 1) return;
   swipeStartX = e.touches[0].clientX;
   swipeStartY = e.touches[0].clientY;
   swipeStartTime = Date.now();
-  swipeStartedAtEdge = swipeStartX < 24;
 }, { passive: true });
 
 document.addEventListener('touchend', (e) => {
@@ -2671,7 +2668,6 @@ document.addEventListener('touchend', (e) => {
   const deltaX = touch.clientX - swipeStartX;
   const deltaY = touch.clientY - swipeStartY;
   const elapsed = Date.now() - swipeStartTime;
-  const wasAtEdge = swipeStartedAtEdge;
   swipeStartX = null;
 
   // Deve essere un gesto orizzontale deciso e abbastanza rapido, non uno
@@ -2679,7 +2675,7 @@ document.addEventListener('touchend', (e) => {
   if(Math.abs(deltaX) < 55 || Math.abs(deltaX) < Math.abs(deltaY) * 1.4 || elapsed > 600) return;
 
   const menuOpen = document.getElementById('sideMenu').classList.contains('show');
-  if(!menuOpen && deltaX > 0 && wasAtEdge){
+  if(!menuOpen && deltaX > 0){
     openMenu();
   } else if(menuOpen && deltaX < 0){
     closeMenu();
