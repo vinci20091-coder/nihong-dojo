@@ -418,8 +418,8 @@
   <div class="menu-section">
     <h3 id="menuThemeTitle">🎨 Tema</h3>
     <div class="menu-row">
-      <button class="secondary" id="themeLightBtn"><span class="no-italic">☀️</span> chiaro</button>
-      <button class="secondary" id="themeDarkBtn"><span class="no-italic">🌙</span> scuro</button>
+      <button class="secondary" id="themeLightBtn"></button>
+      <button class="secondary" id="themeDarkBtn"></button>
     </div>
   </div>
 
@@ -572,6 +572,7 @@ const UI_TEXT = {
     subtitle: "produzione attiva · niente teoria · solo output",
     menuLangTitle: "🌐 Lingua", menuSoundTitle: "🔊 Suoni", menuThemeTitle: "🎨 Tema", menuVocabTitle: "📚 Vocabolario", menuAccountTitle: "⚙️ Account",
     menuTextSizeTitle: "🔤 Dimensione testo", textSizeNormal: "normale", textSizeLarge: "grande", textSizeXlarge: "molto grande",
+    themeLight: "☀️ chiaro", themeDark: "🌙 scuro",
     labelActive: "attivo", labelLearning: "in apprendimento",
     resetBtn: "ricomincia da zero", changeKeyBtn: "cambia api key",
     setupIntro: 'Vai su <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a>, crea una key gratuita (nessuna carta richiesta) e incollala qui sotto. Resta salvata solo sul tuo telefono, non viene mai inviata altrove se non a Google.',
@@ -646,6 +647,7 @@ const UI_TEXT = {
     subtitle: "active production · no theory · output only",
     menuLangTitle: "🌐 Language", menuSoundTitle: "🔊 Sound", menuThemeTitle: "🎨 Theme", menuVocabTitle: "📚 Vocabulary", menuAccountTitle: "⚙️ Account",
     menuTextSizeTitle: "🔤 Text size", textSizeNormal: "normal", textSizeLarge: "large", textSizeXlarge: "extra large",
+    themeLight: "☀️ light", themeDark: "🌙 dark",
     labelActive: "active", labelLearning: "learning",
     resetBtn: "start over", changeKeyBtn: "change api key",
     setupIntro: 'Go to <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a>, create a free key (no card required) and paste it below. It stays saved only on your phone, never sent anywhere except to Google.',
@@ -938,6 +940,8 @@ function applyStaticTexts(){
   document.getElementById('menuThemeTitle').innerHTML = wrapIcons(t('menuThemeTitle'));
   document.getElementById('menuTextSizeTitle').innerHTML = wrapIcons(t('menuTextSizeTitle'));
   document.getElementById('textSizeNormalBtn').textContent = t('textSizeNormal');
+  document.getElementById('themeLightBtn').innerHTML = wrapIcons(t('themeLight'));
+  document.getElementById('themeDarkBtn').innerHTML = wrapIcons(t('themeDark'));
   document.getElementById('textSizeLargeBtn').textContent = t('textSizeLarge');
   document.getElementById('textSizeXlargeBtn').textContent = t('textSizeXlarge');
   document.getElementById('menuHistoryTitle').innerHTML = wrapIcons(t('menuHistoryTitle'));
